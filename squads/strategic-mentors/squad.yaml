@@ -1,0 +1,247 @@
+squad:
+  id: strategic-mentors
+  name: Strategic Mentors Squad
+  version: "1.0"
+  status: Production
+  created: 2026-03-16
+  validated: 2026-03-18
+
+  description: |
+    10-mentor squad covering 3 priority areas:
+    1. Architecture & Systems (Elon, Jeff, Alan)
+    2. Energy & Embodiment (Tony, Paulo)
+    3. Relationships & Wisdom (Jesus, Rei, Jim, + Napoleon Hill & Steve Jobs)
+
+  qa:
+    validator: Quinn (@qa)
+    validation_story: "13.1"
+    validation_date: 2026-03-18
+    status: "APPROVED"
+    confidence: "High"
+    notes: |
+      - 10/10 mentors structurally complete
+      - 5/5 cross-mentor scenarios with distinguishable responses
+      - 3/3 priority areas covered without gaps
+      - Zero destructive overlap
+      - Ready for production activation
+
+  mentors:
+    - id: elon-musk
+      name: Elon Musk
+      role: Strategic Mentor — First Principles & Manufacturing Excellence
+      domain: Processos, engenharia, first principles, manufatura, urgência existencial
+      status: Production
+      turing_score: 35/50
+      activation: /AIOX:agents:elon-musk
+      agent_file: squads/strategic-mentors/elon-musk-agent.md
+      priority_coverage:
+        - Architecture & Systems (Primary)
+      key_frameworks:
+        - First Principles Thinking
+        - The Algorithm (Question → Delete → Simplify → Accelerate → Automate)
+        - Physics Approach to Business
+        - Constraint Removal / Idiot Index
+
+    - id: alan-nicolas
+      name: Alan Nicolas
+      role: Strategic Mentor — IA Aplicada & Process Design
+      domain: IA aplicada, processos reais, design de workflows humano-IA, ROI de automação
+      status: Production
+      turing_score: 35/50
+      activation: /AIOX:agents:alan-nicolas
+      agent_file: squads/strategic-mentors/alan-nicolas-agent.md
+      priority_coverage:
+        - Architecture & Systems (Primary)
+      key_frameworks:
+        - AI Fit Assessment
+        - Taxonomia de Executores
+        - Segundo Cérebro
+        - Triangulação
+
+    - id: steve-jobs
+      name: Steve Jobs
+      role: Strategic Mentor — Vision & Design
+      domain: Produto, design, visão, simplificação, narrativa
+      status: Production
+      turing_score: 35/50
+      activation: /AIOX:agents:steve-jobs
+      agent_file: squads/strategic-mentors/steve-jobs-agent.md
+      priority_coverage:
+        - Architecture & Systems (Secondary)
+      key_frameworks:
+        - Design Minimalista
+        - Estrutura 3 Atos
+        - Substração como Método
+        - Produto como Herói
+
+    - id: jeff-bezos
+      name: Jeff Bezos
+      role: Strategic Mentor — Systems & Long-Term Thinking
+      domain: Escalabilidade, pensamento de longo prazo, obsessão pelo cliente, decisões estruturais
+      status: Production
+      turing_score: 35/50
+      activation: /AIOX:agents:jeff-bezos
+      agent_file: squads/strategic-mentors/jeff-bezos-agent.md
+      priority_coverage:
+        - Architecture & Systems (Primary)
+      key_frameworks:
+        - Customer Obsession
+        - Working Backwards
+        - Type 1 vs Type 2 Decisions
+        - Day 1 Mentality / Flywheel
+
+    - id: paulo-vieira
+      name: Paulo Vieira
+      role: Mentor Estratégico — Identidade & Autorresponsabilidade
+      domain: Crenças, identidade, autorresponsabilidade, transformação de padrões
+      status: Production
+      turing_score: 35/50
+      activation: /AIOX:agents:paulo-vieira
+      agent_file: squads/strategic-mentors/paulo-vieira-agent.md
+      priority_coverage:
+        - Energy & Embodiment (Primary)
+      key_frameworks:
+        - Método CIS (Crença-Identidade-Situação)
+        - 11 Pilares da Vida Integral
+        - Pirâmide SER-FAZER-TER
+        - Diagnóstico Estruturado
+
+    - id: tony-robbins
+      name: Tony Robbins
+      role: Strategic Mentor — Energy & Peak Performance
+      domain: Estado fisiológico, energia, alta performance, transformação
+      status: Production
+      turing_score: 35/50
+      activation: /AIOX:agents:tony-robbins
+      agent_file: squads/strategic-mentors/tony-robbins-agent.md
+      priority_coverage:
+        - Energy & Embodiment (Primary)
+      key_frameworks:
+        - Triad (Body-Mind-Emotion)
+        - 6 Necessidades Humanas
+        - Peak State Activation
+        - Incantations & Identity Shift
+
+    - id: jim-rohn
+      name: Jim Rohn
+      role: Strategic Mentor — Philosophy & Personal Development
+      domain: Filosofia de vida, princípios universais, responsabilidade, crescimento pessoal
+      status: Production
+      turing_score: 35/50
+      activation: /AIOX:agents:jim-rohn
+      agent_file: squads/strategic-mentors/jim-rohn-agent.md
+      priority_coverage:
+        - Relationships & Wisdom (Primary)
+      key_frameworks:
+        - Lei da Semeadura e da Colheita
+        - As 5 Pessoas (Influências)
+        - Auto-educação
+        - Estações da Vida
+
+    - id: napoleon-hill
+      name: Napoleon Hill
+      role: Strategic Mentor — Mastermind & Alliance
+      domain: Aliança estratégica, mastermind, mentalidade, poder do pensamento
+      status: Production
+      turing_score: 35/50
+      activation: /AIOX:agents:napoleon-hill
+      agent_file: squads/strategic-mentors/napoleon-hill-agent.md
+      priority_coverage:
+        - Relationships & Wisdom (Secondary)
+      key_frameworks:
+        - Mastermind Principle
+        - Harmonious Alliance
+        - Definiteness of Purpose
+        - Organized Planning
+
+    - id: rei-salomao
+      name: Rei Salomão
+      role: Strategic Mentor — Wisdom & Counsel
+      domain: Sabedoria, conselheiros, julgamento sábio, múltiplas perspectivas
+      status: Production
+      turing_score: 35/50
+      activation: /AIOX:agents:rei-salomao
+      agent_file: squads/strategic-mentors/rei-salomao-agent.md
+      priority_coverage:
+        - Relationships & Wisdom (Primary)
+      key_frameworks:
+        - Conselheiros (Multiple Perspectives)
+        - Sabedoria Coletiva
+        - Julgamento Sábio
+        - Síntese de Visões
+
+    - id: jesus-cristo
+      name: Jesus Cristo
+      role: Strategic Mentor — Servant Leadership & Value
+      domain: Dignidade, valor intrínseco, liderança servidora, relacionamentos autênticos
+      status: Production
+      turing_score: 35/50
+      activation: /AIOX:agents:jesus-cristo
+      agent_file: squads/strategic-mentors/jesus-cristo-agent.md
+      priority_coverage:
+        - Relationships & Wisdom (Primary)
+      key_frameworks:
+        - Servant Leadership
+        - Valor Intrínseco
+        - Dignidade Inerente
+        - Autêntico Relacionamento
+
+  coverage:
+    priority_1_architecture:
+      name: "Arquitetura Sistêmica"
+      description: "Processos, sistemas, IA, otimização operacional"
+      coverage: "100%"
+      mentors:
+        - elon-musk (Primary)
+        - jeff-bezos (Primary)
+        - alan-nicolas (Primary)
+        - steve-jobs (Secondary)
+
+    priority_2_energy:
+      name: "Corporalidade & Energia"
+      description: "Estado fisiológico, energia, alta performance"
+      coverage: "100%"
+      mentors:
+        - tony-robbins (Primary)
+        - paulo-vieira (Primary)
+        - jim-rohn (Secondary)
+
+    priority_3_relationships:
+      name: "Relacionamentos"
+      description: "Princípios, sabedoria interpessoal, liderança"
+      coverage: "100%"
+      mentors:
+        - jesus-cristo (Primary)
+        - rei-salomao (Primary)
+        - jim-rohn (Primary)
+        - napoleon-hill (Secondary)
+        - jeff-bezos (Secondary)
+
+  activation:
+    method: "/AIOX:agents:{mentor-id}"
+    example: "/AIOX:agents:elon-musk"
+    requirements:
+      - All mentors loaded from squads/strategic-mentors/{mentor-id}-agent.md
+      - No external agent files required
+      - Activatable via /AIOX:agents:{mentor-id} or @{mentor-id} in chat
+    activation_story: "13.2"
+    activated_date: 2026-03-18
+
+  metrics:
+    total_mentors: 10
+    approved: 10
+    needs_recalibration: 0
+    cross_mentor_scenarios_passed: 5
+    priority_coverage: "100%"
+    gap_critical: 0
+
+  next_steps:
+    - Story 13.2: Activation as AIOX agents
+    - Future: Marketplace publication
+    - Future: User testing & feedback loop
+
+  contacts:
+    qa_validator: Quinn (@qa)
+    product_owner: Pax (@po)
+    documentation: docs/qa/strategic-mentors-validation.md
+    squad_index: squads/strategic-mentors/README.md

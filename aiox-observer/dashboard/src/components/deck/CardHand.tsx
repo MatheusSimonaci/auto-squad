@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import type { Card as CardType } from '../../types';
-import { WORKFLOWS, MENTOR_CARDS } from '../../data/workflows';
+import { WORKFLOWS, MENTOR_CARDS, MARKETING_CARDS } from '../../data/workflows';
 import WorkflowCard from '../cards/WorkflowCard';
 import MentorCard from '../cards/MentorCard';
 import MarketingCard from '../cards/MarketingCard';
@@ -14,7 +14,7 @@ interface CardHandProps {
   onDiscardCard?: (card: CardType) => void;
 }
 
-const ALL_CARDS: CardType[] = [...WORKFLOWS, ...MENTOR_CARDS];
+const ALL_CARDS: CardType[] = [...WORKFLOWS, ...MENTOR_CARDS, ...MARKETING_CARDS];
 
 export default function CardHand({
   deck,

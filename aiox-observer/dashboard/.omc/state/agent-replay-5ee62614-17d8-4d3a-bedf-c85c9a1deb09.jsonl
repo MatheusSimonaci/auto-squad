@@ -1,0 +1,5 @@
+{"t":0,"agent":"af3bd9f","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"system","event":"skill_invoked","skill_name":"claude-api"}
+{"t":0,"agent":"a0bf4a0","agent_type":"executor","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a0bf4a0","agent_type":"executor","event":"agent_stop","success":true,"duration_ms":542210}
+{"t":0,"agent":"af3bd9f","agent_type":"executor","event":"agent_stop","success":true,"duration_ms":2627816}

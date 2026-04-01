@@ -1,13 +1,17 @@
 import { create } from 'zustand';
 import type { GameState, Agent, Story, Event } from '../types';
 
+type ConnectionStatus = 'connected' | 'disconnected' | 'reconnecting';
+
 interface GameStore extends GameState {
+  connectionStatus: ConnectionStatus;
   setSession: (session: GameState['session']) => void;
   addAgent: (agent: Agent) => void;
   updateAgent: (id: string, updates: Partial<Agent>) => void;
   addStory: (story: Story) => void;
   addEvent: (event: Event) => void;
   setActiveWorkflow: (workflow: string) => void;
+  setConnectionStatus: (status: ConnectionStatus) => void;
   setState: (state: GameState) => void;
 }
 
@@ -17,6 +21,7 @@ export const useGameStore = create<GameStore>((set) => ({
   stories: [],
   events: [],
   activeWorkflow: undefined,
+  connectionStatus: 'disconnected',
 
   setSession: (session) => set({ session }),
   addAgent: (agent) => set((state) => ({
@@ -29,8 +34,9 @@ export const useGameStore = create<GameStore>((set) => ({
     stories: [...state.stories, story],
   })),
   addEvent: (event) => set((state) => ({
-    events: [event, ...state.events.slice(0, 49)], // keep 50 recent
+    events: [event, ...state.events.slice(0, 199)], // keep 200 recent
   })),
   setActiveWorkflow: (workflow) => set({ activeWorkflow: workflow }),
+  setConnectionStatus: (status) => set({ connectionStatus: status }),
   setState: (state) => set(state),
 }));

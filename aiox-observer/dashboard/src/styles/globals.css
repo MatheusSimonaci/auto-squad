@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* HUD design tokens */
+:root {
+  --hud-bg: #060a12;
+  --hud-surface: #0c1220;
+  --hud-surface-2: #111827;
+  --hud-border: #1e293b;
+  --hud-border-glow: rgba(6, 182, 212, 0.3);
+  --hud-cyan: #06b6d4;
+  --hud-cyan-bright: #22d3ee;
+  --hud-blue: #3b82f6;
+  --hud-green: #10b981;
+  --hud-amber: #f59e0b;
+  --hud-red: #ef4444;
+  --hud-purple: #8b5cf6;
+  --hud-text: #e2e8f0;
+  --hud-text-muted: #94a3b8;
+  --hud-text-dim: #475569;
+
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  --font-display: 'Inter', system-ui, sans-serif;
+}
+
+/* Base resets */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--hud-bg);
+  color: var(--hud-text);
+  font-family: var(--font-display);
+  overflow-x: hidden;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--hud-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--hud-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--hud-cyan);
+}
+
+/* Glass morphism panel */
+@layer components {
+  .hud-panel {
+    @apply bg-black/40 backdrop-blur-xl border border-cyan-500/15 rounded-lg;
+  }
+}
+
+/* Scan line overlay */
+.hud-scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(6, 182, 212, 0.02) 2px,
+    rgba(6, 182, 212, 0.02) 4px
+  );
+  pointer-events: none;
+  z-index: 50;
+}
+
+/* Grid overlay background */
+.hud-grid-bg {
+  background-image:
+    linear-gradient(rgba(6, 182, 212, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(6, 182, 212, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* HUD pulse glow */
+@keyframes hud-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(6, 182, 212, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(6, 182, 212, 0.6); }
+}
+
+.hud-pulse {
+  animation: hud-pulse 2s ease-in-out infinite;
+}
+
+/* Status ring states */
+.status-ring-active {
+  box-shadow: 0 0 12px var(--hud-green);
+  border-color: var(--hud-green);
+}
+
+.status-ring-idle {
+  border-color: var(--hud-text-dim);
+}
+
+.status-ring-waiting {
+  box-shadow: 0 0 8px var(--hud-amber);
+  border-color: var(--hud-amber);
+}
+
+.status-ring-done {
+  border-color: var(--hud-blue);
+}
+
+/* Data stream animation */
+@keyframes hud-data-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.hud-data-in {
+  animation: hud-data-in 0.3s ease-out;
+}
+
+/* Ring sweep animation */
+@keyframes ring-sweep {
+  from { stroke-dashoffset: 283; }
+  to { stroke-dashoffset: 0; }
+}
+
+.ring-sweep {
+  animation: ring-sweep 2s ease-in-out infinite;
+}
+
+/* Grid drift animation */
+@keyframes grid-drift {
+  from { background-position: 0 0; }
+  to { background-position: 40px 40px; }
+}
+
+.hud-grid-bg {
+  animation: grid-drift 60s linear infinite;
+}

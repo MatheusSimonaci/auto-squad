@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { Card } from '../types';
-import { WORKFLOWS, MENTOR_CARDS } from '../data/workflows';
+import { WORKFLOWS, MENTOR_CARDS, MARKETING_CARDS } from '../data/workflows';
 
 interface HandState {
   deck: Card['deck'];
@@ -12,7 +12,7 @@ interface HandState {
 const DECK_CARDS: Record<Card['deck'], Card[]> = {
   aiox: WORKFLOWS,
   mentors: MENTOR_CARDS,
-  marketing: [], // TODO: Add marketing cards
+  marketing: MARKETING_CARDS,
 };
 
 export function useCardHand() {

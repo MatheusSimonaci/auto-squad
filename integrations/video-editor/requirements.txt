@@ -1,0 +1,9 @@
+# Video Editor — Python dependencies
+#
+# Prerequisites (install separately, not via pip):
+#   ffmpeg  — https://ffmpeg.org/download.html  (must be on PATH)
+#
+# Install:
+#   pip install -r integrations/video-editor/requirements.txt
+
+openai-whisper

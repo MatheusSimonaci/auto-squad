@@ -1,0 +1,13 @@
+{
+  "name": "aiox-observer",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "server": "node server/index.js",
+    "dashboard": "npm run dev --prefix dashboard",
+    "dev": "concurrently \"npm run server\" \"npm run dashboard\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

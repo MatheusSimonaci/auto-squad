@@ -7,7 +7,7 @@ export default function AgentActivityChart() {
 
   return (
     <div className="hud-panel p-4 rounded-lg">
-      <h3 className="text-sm font-semibold text-hud-cyan mb-4">Agent Activity Timeline</h3>
+      <h3 className="text-sm font-semibold text-hud-cyan mb-4">Execution Timeline</h3>
       <ResponsiveContainer width="100%" height={300}>
         <AreaChart data={eventsByTimeBucket}>
           <defs>
@@ -20,9 +20,7 @@ export default function AgentActivityChart() {
           <XAxis dataKey="time" {...chartTheme.cartesianAxis} />
           <YAxis {...chartTheme.cartesianAxis} />
           <Tooltip {...chartTheme.tooltip} />
-          <Area type="monotone" dataKey="Dex" stackId="1" stroke="#06b6d4" fill="url(#colorActivity)" />
-          <Area type="monotone" dataKey="Quinn" stackId="1" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} />
-          <Area type="monotone" dataKey="Aria" stackId="1" stroke="#10b981" fill="#10b981" fillOpacity={0.2} />
+          <Area type="monotone" dataKey="total" stroke="#06b6d4" fill="url(#colorActivity)" name="Events" />
         </AreaChart>
       </ResponsiveContainer>
     </div>

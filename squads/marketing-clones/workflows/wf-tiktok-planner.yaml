@@ -1,0 +1,555 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# WORKFLOW: TikTok Content Planner
+# Version: 2.0.0
+# Purpose: Busca atividades do ClickUp (grupo "roteiro") e produz conceito,
+#          descrição com hashtags e roteiro de 4 segmentos × 5s (20s total)
+#          com narração TTS + prompts de geração de vídeo por segmento
+# ═══════════════════════════════════════════════════════════════════════════════
+
+workflow-id: wf-tiktok-planner
+name: TikTok Content Planner
+version: 2.0.0
+estimated-time: 15-25 minutes
+complexity: medium
+
+description: |
+  Pipeline completo para planejar um vídeo TikTok de 20 segundos (4 segmentos × 5s)
+  a partir de tarefas do ClickUp no grupo "roteiro".
+
+  Cada segmento produz dois outputs:
+    - narration_text: texto TTS + overlay (≤12 palavras, ~5s de fala natural)
+    - video_prompt:   prompt de geração de vídeo AI para a camada visual (5s)
+
+  Fluxo:
+  [channel input]
+    → Phase 0: Fetch ClickUp roteiro (node script)
+    → Phase 1: Concept Planning PARALLEL (MrBeast + Gary Vee → merge)
+    → Phase 2: Description + Hashtags (Pedro Sobral)
+    → Phase 3: Script SEQUENTIAL (Russell Brunson Pass A → MrBeast Pass B)
+    → Phase 4: Publish to ClickUp
+    → [output/tiktok/{channel}/{task_slug}/]
+
+inputs:
+  required:
+    - channel: "biblia-em-imagens | tiktok-shop | informante-ai"
+  optional:
+    - description_agent: "pedro-sobral (default) | tiago-finch"
+    - task_slug_override: "force a specific task slug (skips ClickUp fetch)"
+
+channel_profiles:
+  biblia-em-imagens:
+    status: active
+    clickup_list_id: "901326517287"
+    clickup_folder: "Bíblia em imagens"
+    language: pt-BR
+    tone: "inspirador, emocional, espiritual, acolhedor — NOT dogmático, sem bias denominacional"
+    audience: "Cristãos brasileiros, 25-55 anos"
+    content_type: "Versículos bíblicos expositivos — o texto bíblico como resposta direta"
+    hook_style: "Pergunta genuína que o versículo responde diretamente"
+    cta_style: "Pergunta específica ao versículo + tema do vídeo — NUNCA template fixo, NUNCA pedir share"
+    duration_target: "20s exatos (4 segmentos × 5s)"
+    hashtag_pillars:
+      niche:
+        - "#biblia"
+        - "#palavradedeus"
+        - "#versiculododia"
+        - "#fecrista"
+        - "#bíblia"
+      broad:
+        - "#fe"
+        - "#deus"
+        - "#espiritualidade"
+        - "#cristaos"
+        - "#mensagemdedeus"
+
+  tiktok-shop:
+    status: pending_configuration
+    clickup_list_id: "901326229706"
+    clickup_folder: "Tiktok shop"
+    language: pt-BR
+    tone: "PENDING — configure before use"
+    audience: "PENDING"
+    content_type: "PENDING"
+    hook_style: "PENDING"
+    cta_style: "PENDING"
+    duration_target: "20s exatos (4 segmentos × 5s)"
+    hashtag_pillars: {}
+
+  informante-ai:
+    status: pending_configuration
+    clickup_list_id: "901326318049"
+    clickup_folder: "informante.ai"
+    language: pt-BR
+    tone: "PENDING — configure before use"
+    audience: "PENDING"
+    content_type: "PENDING"
+    hook_style: "PENDING"
+    cta_style: "PENDING"
+    duration_target: "20s exatos (4 segmentos × 5s)"
+    hashtag_pillars: {}
+
+  acessorios-de-academia:
+    status: active
+    clickup_list_id: "901313618750"
+    clickup_folder: "Acessórios de Academia"
+    language: pt-BR
+    tone: "energético, motivacional, direto — foco em resultado e performance"
+    audience: "Praticantes de academia e fitness, 18-35 anos, buscando equipamentos e acessórios"
+    content_type: "Apresentação de produto + benefício direto — o acessório resolve um problema real de treino"
+    hook_style: "Problema ou dor do treino que o produto resolve — curiosity gap baseado em resultado"
+    cta_style: "Pergunta sobre experiência de treino ligada ao produto — NUNCA pedir share"
+    duration_target: "20s exatos (4 segmentos × 5s)"
+    hashtag_pillars:
+      niche:
+        - "#acessoriosdeacademia"
+        - "#equipamentofitness"
+        - "#treino"
+        - "#academia"
+        - "#fitness"
+      broad:
+        - "#musculacao"
+        - "#workout"
+        - "#gym"
+        - "#vidafitness"
+        - "#corposaude"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# VIDEO FORMAT
+# ═══════════════════════════════════════════════════════════════════════════════
+
+video_format:
+  total_duration: 20s
+  total_segments: 4
+  segment_duration: 5s
+  narration_max_words: 12     # ~2.4 palavras/segundo para fala natural fluente
+  output_per_segment:
+    narration_text: "texto TTS falado + overlay na tela (≤12 palavras)"
+    video_prompt:   "prompt de geração de vídeo AI — descreve a camada visual (5s)"
+
+  segment_structure:
+    - block: HOOK
+      segment: 1
+      timing: "0-5s"
+      objective: "Pergunta genuína ou fato que para o scroll — curiosity gap"
+      rule: "A pergunta deve ser DIRETAMENTE respondida pelo versículo do Seg 2"
+
+    - block: VERSE
+      segment: 2
+      timing: "5-10s"
+      objective: "O versículo exato em tela — o texto bíblico É a resposta"
+      rule: "Narração = leitura do versículo. Referência completa (Livro Cap:Vers)."
+
+    - block: ILLUSTRATION
+      segment: 3
+      timing: "10-15s"
+      objective: "O que o versículo MOSTRA — visualizado literalmente, não metaforicamente"
+      rule: "Sem comentário externo. O vídeo mostra o que o versículo descreve."
+
+    - block: CTA
+      segment: 4
+      timing: "15-20s"
+      objective: "Reflexão pessoal + convite ao comentário"
+      rule: "Perguntar o que ESSE VERSÍCULO significa pra eles. Nunca pedir share."
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BIBLE CONTENT DIRECTION (canal: biblia-em-imagens)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+bible_content_direction:
+  channel: biblia-em-imagens
+  philosophy: |
+    Verse-first, illustration-as-witness.
+    O versículo fala — o vídeo mostra o que ele descreve.
+    Perguntas são respondidas pelo texto bíblico, não por explicação externa.
+
+  core_principles:
+    - id: BCD_001
+      name: "Versículo como Resposta"
+      rule: |
+        A HOOK deve formular uma pergunta que o próprio versículo responde.
+        NUNCA usar o versículo como apoio para uma explicação sua — o versículo É a resposta.
+      example:
+        wrong:  "HOOK: Você já se sentiu sozinho? VERSE: Sl 23:4 → então explicamos que Deus acompanha..."
+        right:  "HOOK: O que fazer quando a ansiedade não passa? VERSE: Fp 4:6-7 — o versículo responde diretamente."
+
+    - id: BCD_002
+      name: "Ilustração Literal do Versículo"
+      rule: |
+        O video_prompt do Seg 3 (ILLUSTRATION) deve mostrar literalmente o que o versículo descreve.
+        Se o versículo diz "águas tranquilas" → mostrar águas tranquilas, não paz abstrata.
+        Se o versículo diz "leão deitado com cordeiro" → mostrar isso, não harmonia genérica.
+      anti_pattern: "Mostrar 'paz' abstratamente quando o versículo diz 'águas tranquilas' (Sl 23:2)"
+
+    - id: BCD_003
+      name: "Zero Comentário Tangente"
+      rule: |
+        A narração NÃO explica o versículo com palavras próprias.
+        Permitido: contexto histórico/textual mínimo que desbloqueia o versículo.
+        Proibido: paráfrase interpretativa, teologia denominacional, aplicação prescritiva.
+      example:
+        allowed: "Davi escreveu isso enquanto fugia de Saul — ouça o que ele disse"
+        blocked: "Esse versículo nos ensina que devemos sempre confiar em Deus porque..."
+
+    - id: BCD_004
+      name: "Versículo em Destaque no Seg 2"
+      rule: |
+        Durante o Seg 2 (VERSE), o video_prompt deve mostrar o texto do versículo
+        em destaque visual — fundo simples, fonte legível, referência bíblica visível.
+        Narração = leitura do versículo em voz alta.
+        Nenhuma imagem complexa competindo com o texto.
+
+    - id: BCD_005
+      name: "Precisão de Referência"
+      rule: |
+        Sempre citar referência exata: Livro Capítulo:Versículo.
+        Nunca parafrasear como se fosse citação direta.
+        Se versículo for longo, citar a parte usada + referência completa.
+
+  segment_guidance:
+    HOOK:
+      tone: "Curiosidade genuína, não sensacionalismo — perguntas que cristãos realmente têm"
+      good_examples:
+        - "O que fazer quando você não consegue parar de se preocupar?"
+        - "Existe um versículo que descreve exatamente esse sentimento?"
+        - "A Bíblia tem uma resposta direta para isso — você vai reconhecer"
+      avoid:
+        - "Você não vai acreditar no que a Bíblia diz..."   # sensacionalismo
+        - "Segredo que as igrejas escondem..."               # conspiracionismo
+        - "Fato chocante sobre a Bíblia..."                  # clickbait irreverente
+
+    VERSE:
+      tone: "Reverente, direto — o versículo fala por si mesmo"
+      format: "[Livro Cap:Vers] — texto completo do versículo (pt-BR)"
+      visual: "Texto centralizado, fundo simples e sóbrio, sem elementos que concorram com a leitura"
+      narration_rule: "Ler o versículo inteiro em voz natural — não dramatizar em excesso"
+
+    ILLUSTRATION:
+      tone: "Contemplativo, evocativo — o que o versículo MOSTRA"
+      rule: "Descrever visualmente o que o versículo retrata, não o que 'significa'"
+      video_prompt_style: "Cena bíblica ou natural que ilustra o texto — estilo ilustração digital"
+      good_examples:
+        - "Versículo: 'O Senhor é o meu pastor' → mostrar pastor com ovelhas em campo aberto ao pôr do sol"
+        - "Versículo: 'não temas, porque eu sou contigo' → figura luminosa ao lado de pessoa ajoelhada no escuro"
+      anti_pattern: "Mostrar abstração genérica (luz dourada, mãos) quando o versículo descreve algo concreto"
+
+    CTA:
+      tone: "Pessoal, acolhedor — nunca imperativo ou prescritivo"
+      rule: "CTA varia por vídeo — deve ser específico ao versículo + tema, nunca template fixo"
+      pattern: "Pergunta sobre uma experiência, memória ou sentimento que ESSE versículo evoca"
+      fallback: "O que esse versículo significa pra você? Comenta." # usar APENAS se nenhum ângulo específico existir
+      examples:
+        - "ansiedade (Fp 4:6): Você já orou isso palavra por palavra? Comenta"
+        - "solidão (Sl 23:4): O que você sente quando lê 'eu sou contigo'?"
+        - "força (Fp 4:13): Em que momento esse versículo te sustentou?"
+        - "perdão (Mt 6:14): Tem alguém que você ainda precisa perdoar?"
+      avoid:
+        - "Compartilha com seus amigos"         # share explícito
+        - "Esse versículo nos ensina que..."    # explicar o significado pelo espectador
+        - CTA genérico que serviria para qualquer vídeo do canal
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+phases:
+
+  - phase: 0
+    name: Fetch ClickUp Roteiro
+    task: "fetch-clickup-roteiro.md"
+    duration: 1-2 min
+    agent: "orchestrator (automated)"
+
+    steps:
+      - step: 1
+        action: "Resolve list_id from channel_profiles[channel].clickup_list_id"
+      - step: 2
+        action: "Run: node integrations/clickup/get-activities.js {list_id} roteiro"
+      - step: 3
+        action: "Parse stdout — select first pending task"
+      - step: 4
+        action: "Generate task_slug from task name (lowercase, hyphens)"
+      - step: 5
+        action: "Write output/tiktok/{channel}/{task_slug}/00-theme-brief.md"
+
+    checkpoint:
+      gate: "QG-TK-001"
+      criteria:
+        - "At least 1 task returned from ClickUp with status roteiro"
+        - "00-theme-brief.md written with task name, ID, URL, and theme"
+      blocking: true
+      on_fail: "Verify CLICKUP_API_KEY in .env and list_id for channel"
+
+    output:
+      files:
+        - "output/tiktok/{channel}/{task_slug}/00-theme-brief.md"
+
+  - phase: 1
+    name: Concept Planning (Parallel)
+    task: "plan-tiktok-concept.md"
+    duration: 5-8 min
+    execution: parallel
+
+    agents:
+      - agent: "mrbeast-agent"
+        focus: "Curiosity Gap — formular pergunta HOOK que o versículo responde + arco de 4 segmentos"
+        output: "01a-concept-mrbeast.md"
+      - agent: "gary-vee-agent"
+        focus: "Platform-Native + Verse Selection — escolher o versículo certo + tom expositivo autêntico"
+        output: "01b-concept-garyvee.md"
+
+    merge_step:
+      action: "Combine: hook de MrBeast + seleção de versículo de Gary Vee → conceito final + 4-beat segment arc"
+      output: "01-concept-final.md"
+      merge_rules:
+        - "HOOK (Seg 1): pergunta MrBeast (curiosity gap — diretamente respondida pelo versículo)"
+        - "VERSE (Seg 2): versículo exato com referência bíblica completa (Livro Cap:Vers)"
+        - "ILLUSTRATION (Seg 3): o que o versículo descreve literalmente — zero comentário tangente"
+        - "CTA (Seg 4): reflexão pessoal Gary Vee — pergunta aberta, não instrução prescritiva"
+
+    checkpoint:
+      gate: "QG-TK-002"
+      criteria:
+        - "01a-concept-mrbeast.md exists with hook question + 4-beat segment arc"
+        - "01b-concept-garyvee.md exists with verse selection + platform tone"
+        - "01-concept-final.md exists with merged concept + 4-beat segment arc"
+        - "Segment arc has exactly 4 beats labeled (HOOK, VERSE, ILLUSTRATION, CTA)"
+        - "Seg 2 (VERSE) specifies exact Bible reference (Book Chapter:Verse)"
+      blocking: true
+
+    output:
+      files:
+        - "output/tiktok/{channel}/{task_slug}/01a-concept-mrbeast.md"
+        - "output/tiktok/{channel}/{task_slug}/01b-concept-garyvee.md"
+        - "output/tiktok/{channel}/{task_slug}/01-concept-final.md"
+
+  - phase: 2
+    name: Description + Hashtag Strategy
+    task: "create-tiktok-description.md"
+    duration: 3-5 min
+    agent: "pedro-sobral-agent"
+    agent_override: "tiago-finch-agent (if description_agent=tiago-finch)"
+
+    steps:
+      - step: 1
+        action: "Read 01-concept-final.md — extract theme, verse reference, and emotional angle"
+      - step: 2
+        action: "Write caption (≤150 chars) with angle testing diagnostic"
+      - step: 3
+        action: "Build 3-tier hashtag stack (15-25 hashtags total)"
+        tiers:
+          - "Tier 1 — Niche (channel-specific pillars, 5-8 tags)"
+          - "Tier 2 — Broad spiritual/motivational (4-8 tags)"
+          - "Tier 3 — Trending/discovery (3-6 tags, research current trends)"
+      - step: 4
+        action: "Write temperature diagnosis (cold/warm/hot audience consideration)"
+
+    checkpoint:
+      gate: "QG-TK-003"
+      criteria:
+        - "Caption length ≤ 150 characters"
+        - "Total hashtags between 15 and 25"
+        - "At least 3 niche hashtags from channel profile"
+        - "No duplicate hashtags"
+      blocking: true
+
+    output:
+      files:
+        - "output/tiktok/{channel}/{task_slug}/02-description.md"
+
+  - phase: 3
+    name: Script Writing (Sequential — Brunson → MrBeast)
+    task: "write-tiktok-script.md"
+    duration: 6-10 min
+    execution: sequential
+
+    passes:
+      - pass: A
+        agent: "russell-brunson-agent"
+        label: "Narrative Structure"
+        action: |
+          Write all 4 segments following the segment structure.
+          Each segment must have:
+            - narration_text: texto TTS + overlay (target ≤12 words, max 15)
+            - video_prompt:   prompt AI para geração do vídeo do segmento (5s)
+          Follow 00-theme-brief.md for topic and 01-concept-final.md for segment arc.
+          Apply bible_content_direction principles: verse-first, literal illustration, zero tangential commentary.
+        output: "03a-script-brunson.md"
+
+      - pass: B
+        agent: "mrbeast-agent"
+        label: "Sharpening + Validation"
+        action: |
+          Review and optimize every segment from Pass A:
+            - Cut narration_text to ≤12 words per segment
+            - Validate video_prompt specificity and quality (not generic/abstract)
+            - HOOK: pergunta cria curiosity gap respondível pelo versículo?
+            - VERSE: video_prompt mostra o versículo em texto com fundo limpo?
+            - ILLUSTRATION: video_prompt ilustra literalmente o que o versículo descreve?
+            - CTA: asks to comment, NOT to share? Authentic, not pushy?
+            - Do NOT alter verse reference or Bible text
+        output: "03-script-final.md"
+
+    checkpoint:
+      gate: "QG-TK-004"
+      criteria:
+        - "03-script-final.md has EXACTLY 4 segment rows"
+        - "Every segment has narration_text (non-empty, ≤12 words)"
+        - "Every segment has video_prompt (non-empty, specific — not generic)"
+        - "Seg 1 labeled HOOK with curiosity gap question"
+        - "Seg 2 labeled VERSE with Bible reference (Book Cap:Vers) and verse text"
+        - "Seg 3 labeled ILLUSTRATION with literal visual from verse (not abstract)"
+        - "Seg 4 labeled CTA asking viewer to comment (not share)"
+        - "No explicit request to share/compartilhar in CTA"
+        - "Total: 4 segments × 5s = 20s"
+      blocking: true
+
+    output:
+      files:
+        - "output/tiktok/{channel}/{task_slug}/03a-script-brunson.md"
+        - "output/tiktok/{channel}/{task_slug}/03-script-final.md"
+
+  - phase: 4
+    name: Publish to ClickUp
+    task: "publish-to-clickup.md"
+    duration: 1-2 min
+    agent: "orchestrator (automated)"
+    depends_on: [phase_3]
+
+    steps:
+      - step: 1
+        action: "Read task_id from output/tiktok/{channel}/{task_slug}/00-theme-brief.md"
+      - step: 2
+        action: "Assemble roteiro content: header block + 02-description.md + 03-script-final.md"
+      - step: 3
+        action: "Run: node integrations/clickup/append-description.js {task_id} \"{assembled_content}\""
+        note: "Appends to existing description — never overwrites"
+      - step: 4
+        action: "Run: node integrations/clickup/move-next-stage.js {task_id}"
+        note: "Advances task to the next status in the list pipeline automatically"
+
+    checkpoint:
+      gate: "QG-TK-005"
+      criteria:
+        - "task_id resolved from 00-theme-brief.md"
+        - "append-description.js exits with code 0"
+        - "move-next-stage.js exits with code 0 (or warning if already at last status)"
+      blocking: true
+      partial_success: "If append succeeds but move fails — report partial success; roteiro is saved"
+
+    output:
+      clickup_task: "Description updated with full roteiro (description + 4-segment script)"
+      clickup_stage: "Task advanced to next status in pipeline"
+
+output_structure:
+  root: "output/tiktok/{channel}/{task_slug}/"
+  files:
+    - "00-theme-brief.md      # task ClickUp parseada"
+    - "01a-concept-mrbeast.md # curiosity gap hook + 4-beat segment arc draft"
+    - "01b-concept-garyvee.md # seleção do versículo + tom platform-native"
+    - "01-concept-final.md    # conceito merged + 4-beat segment arc"
+    - "02-description.md      # caption ≤150 chars + hashtag strategy"
+    - "03a-script-brunson.md  # tabela 4 segs: narration_text + video_prompt (Brunson)"
+    - "03-script-final.md     # tabela final validada: 4 segs × 5s, narração ≤12 palavras"
+
+script_table_format: |
+  | Seg | Timing  | Bloco         | Narração (TTS + overlay)       | Prompt de Vídeo (AI — 5s)         |
+  |-----|---------|---------------|--------------------------------|-----------------------------------|
+  | 1   | 0-5s    | HOOK          | {≤12 palavras — pergunta}      | {cena que cria curiosidade}       |
+  | 2   | 5-10s   | VERSE         | {Livro Cap:V — texto versículo}| {texto do versículo em tela — fundo simples, fonte legível} |
+  | 3   | 10-15s  | ILLUSTRATION  | {≤12 palavras — o que mostra}  | {cena que ilustra literalmente o versículo} |
+  | 4   | 15-20s  | CTA           | {≤12 palavras — comentar}      | {encerramento visual — acolhedor} |
+
+quality_gates:
+  summary:
+    - gate: QG-TK-001
+      phase: 0
+      blocking: true
+      criteria: "At least 1 ClickUp task in roteiro group"
+    - gate: QG-TK-002
+      phase: 1
+      blocking: true
+      criteria: "Both concept files + merged final with 4-beat segment arc + Bible reference in Seg 2"
+    - gate: QG-TK-003
+      phase: 2
+      blocking: true
+      criteria: "Caption ≤150 chars + 15-25 hashtags with balance"
+    - gate: QG-TK-004
+      phase: 3
+      blocking: true
+      criteria: "Exactly 4 segments × 5s; narration+video_prompt per segment; CTA = comment not share"
+    - gate: QG-TK-005
+      phase: 4
+      blocking: true
+      criteria: "append-description.js and move-next-stage.js both exit 0; ClickUp updated"
+
+execution:
+  command: "*tiktok-plan {channel}"
+  examples:
+    - "*tiktok-plan biblia-em-imagens"
+    - "*tiktok-plan biblia"
+  shortcuts:
+    biblia: "biblia-em-imagens"
+
+  parallel_execution:
+    enabled: true
+    scope: "Phase 1 only (MrBeast + Gary Vee run concurrently)"
+
+  rollback:
+    phase_0_fail: "Check CLICKUP_API_KEY in .env; verify list_id matches channel"
+    phase_1_fail: "Re-run individual agent; merge manually from partial outputs"
+    phase_2_fail: "Adjust hashtag count or caption length; re-run pedro-sobral"
+    phase_3_fail: "Verify segment count = 4; re-run MrBeast Pass B for word/prompt quality"
+
+notes: |
+  **Formato v2 — 4 segmentos × 5s = 20s:**
+  Mudança do formato anterior (18 cenas × 90s) para formato curto de 20s.
+  Cada segmento produz DOIS outputs: narration_text (TTS) + video_prompt (AI video).
+
+  **Filosofia bíblica expositiva (BCD_001-005):**
+  O versículo É a resposta — não o pretexto para uma explicação.
+  A HOOK formula uma pergunta real que o versículo do Seg 2 responde diretamente.
+  O Seg 3 ilustra literalmente o que o versículo descreve — sem paráfrase, sem tangente.
+  O espectador lê e ouve o versículo; o vídeo mostra o que ele diz.
+
+  **narration_text:** ≤12 palavras é regra de timing TTS (5s a ritmo natural)
+  e de legibilidade (overlay deve ser legível em 5s).
+
+  **video_prompt:** Formatado para geradores de vídeo AI (Runway, Kling, Sora, etc.)
+  Cada prompt cobre 5 segundos. Seg 2 deve ter o texto do versículo em destaque.
+  Seg 3 deve ilustrar o versículo literalmente — proibido visual abstrato genérico.
+
+  **CTA Strategy:** Perguntar o que ESSE VERSÍCULO significa pra eles — não
+  pedir share. O versículo fala por si. O comentário é a resposta pessoal do espectador.
+
+  **Phase 1 parallelism:** MrBeast define o curiosity gap e a pergunta hook.
+  Gary Vee seleciona o versículo e define o tom expositivo. Rodam em paralelo
+  para evitar anchoring bias. O merge combina os dois.
+
+dependencies:
+  integration: "integrations/clickup/get-activities.js"
+  env_required: "CLICKUP_API_KEY"
+  tasks:
+    - "squads/marketing-clones/tasks/fetch-clickup-roteiro.md"
+    - "squads/marketing-clones/tasks/plan-tiktok-concept.md"
+    - "squads/marketing-clones/tasks/create-tiktok-description.md"
+    - "squads/marketing-clones/tasks/write-tiktok-script.md"
+    - "squads/marketing-clones/tasks/publish-to-clickup.md"
+  agents:
+    - "squads/marketing-clones/mrbeast-agent.md"
+    - "squads/marketing-clones/gary-vee-agent.md"
+    - "squads/marketing-clones/pedro-sobral-agent.md"
+    - "squads/marketing-clones/tiago-finch-agent.md"
+    - "squads/marketing-clones/russell-brunson-agent.md"
+
+version_history:
+  - version: 2.0.0
+    date: 2026-03-22
+    changes: |
+      Reformatação completa: 18 cenas × 90s → 4 segmentos × 20s.
+      Cada segmento agora produz narration_text (TTS) + video_prompt (AI video).
+      Adicionada seção bible_content_direction com princípios BCD_001-005.
+      Canal biblia-em-imagens: filosofia verse-first expositiva formalizada.
+      Direção bíblica: versículo como resposta direta, ilustração literal, zero comentário tangente.
+  - version: 1.0.0
+    date: 2026-03-22
+    changes: "Initial workflow — biblia-em-imagens channel active; tiktok-shop + informante-ai pending"

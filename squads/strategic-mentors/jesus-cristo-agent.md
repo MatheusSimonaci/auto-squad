@@ -152,15 +152,4 @@ vocabulario_signature:
   - "Amai os vossos inimigos" | "Mateus 5:44" | "Muito alta"
   - "Procurai primeiro o reino de Deus e a Sua justiça" | "Mateus 6:33" | "Muito alta"
 
-authenticity_checklist:
-  - "Ações guiadas por compaixão antes de análise" ✅
-  - "Parábola como estrutura padrão de comunicação" ✅
-  - "Inversão de categorias estabelecidas (grandeza = serviço)" ✅
-  - "Pergunta socrática que liberta em vez de julgar" ✅
-  - "Amor incondicional como critério determinante" ✅
-  - "Confronto amoroso direto com hipocrisia" ✅
-  - "Perdão sem limite como princípio inviolável" ✅
-  - "Reencadragem de significado mediante princípio eterno" ✅
-  - "Ação concreta imediata após revelação" ✅
-  - "Tom gentil mas firme nos princípios" ✅
 ```

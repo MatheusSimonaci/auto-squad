@@ -1,0 +1,172 @@
+name: Marketing AI Clones Squad
+version: 1.0
+description: 9 cognitive clones of world-class marketing specialists, each expert in specific copy domains
+created_by: @squad-creator (Craft)
+created_date: 2026-03-13
+status: Production
+
+metadata:
+  focus_area: Copy Creation
+  specialization: Marketing Expertise Cloning
+  target_users: Copywriters, Content Creators, Entrepreneurs
+  complexity: High
+
+agents:
+  - name: gary-vee-agent
+    version: 1.0
+    file: gary-vee-agent.md
+    aiox_id: gary-vee
+    specialty: Organic Social Copy, Storytelling, Brand Building
+    status: Production
+
+  - name: alex-hormozi-agent
+    version: 1.0
+    file: alex-hormozi-agent.md
+    aiox_id: hormozi
+    specialty: High-Value Offers, VSL, Mathematical Copy
+    status: Production
+
+  - name: mrbeast-agent
+    version: 1.0
+    file: mrbeast-agent.md
+    aiox_id: mrbeast
+    specialty: Viral Titles, Entertainment Copy, Attention Hooks
+    status: Production
+
+  - name: chris-do-agent
+    version: 1.0
+    file: chris-do-agent.md
+    aiox_id: chris-do
+    specialty: Premium Positioning, Creative Services Copy
+    status: Production
+
+  - name: russell-brunson-agent
+    version: 1.0
+    file: russell-brunson-agent.md
+    aiox_id: brunson
+    specialty: Sales Funnels, Webinar Scripts, Storytelling
+    status: Production
+
+  - name: leandro-ladeira-agent
+    version: 1.0
+    file: leandro-ladeira-agent.md
+    aiox_id: ladeira
+    specialty: Direct Persuasion, WhatsApp Copy, Urgency
+    status: Production
+
+  - name: erico-rocha-agent
+    version: 1.0
+    file: erico-rocha-agent.md
+    specialty: Product Launches, Email Sequences, PLF
+    status: Ready for Testing
+    created: 2026-03-13
+    story: 9.7
+
+  - name: pedro-sobral-agent
+    version: 1.0
+    file: pedro-sobral-agent.md
+    specialty: Paid Ads Copy, Meta Ads Headlines, Performance
+    status: Ready for Testing
+    created: 2026-03-13
+    story: 9.8
+
+  - name: tiago-finch-agent
+    version: 1.0
+    file: tiago-finch-agent.md
+    specialty: Growth Copy, Data-Driven, Testing & Optimization
+    status: Ready for Testing
+    created: 2026-03-13
+    story: 9.9
+
+workflows:
+  - name: wf-tiktok-planner
+    version: 1.0.0
+    file: workflows/wf-tiktok-planner.yaml
+    description: "Full pipeline: ClickUp roteiro → concept → description → 18-scene script"
+    command: "*tiktok-plan {channel}"
+    shortcuts:
+      biblia: "biblia-em-imagens"
+    status: Production
+
+  - name: wf-video-editing
+    version: 1.0.0
+    file: workflows/wf-video-editing.yaml
+    description: "Edição de vídeo: ClickUp EDIÇÃO → legendas + concat + BGM → PUBLICAÇÃO"
+    command: "*video-edit"
+    trigger: "Agente recebe parâmetros de edição (assets_dir, no_subtitle, bgm_path)"
+    status: Production
+
+  - name: wf-narration-generator
+    version: 1.0.0
+    file: workflows/wf-narration-generator.yaml
+    description: "Geração de narração TTS: CRIAÇÃO DOS VÍDEOS → ElevenLabs → MP3 → devolutiva ClickUp"
+    command: "*narration-gen"
+    trigger: "Tarefa em CRIAÇÃO DOS VÍDEOS no ClickUp com texto de narração na descrição"
+    status: Production
+
+tasks:
+  - name: fetch-clickup-roteiro
+    file: tasks/fetch-clickup-roteiro.md
+    description: "Fetch ClickUp tasks from roteiro group and write theme brief"
+    workflow: wf-tiktok-planner
+    phase: 0
+
+  - name: plan-tiktok-concept
+    file: tasks/plan-tiktok-concept.md
+    description: "Parallel concept planning: MrBeast (curiosity gap) + Gary Vee (platform tone) → merged 18-beat arc"
+    workflow: wf-tiktok-planner
+    phase: 1
+
+  - name: create-tiktok-description
+    file: tasks/create-tiktok-description.md
+    description: "Write TikTok caption ≤150 chars and 3-tier hashtag strategy (15-25 tags)"
+    workflow: wf-tiktok-planner
+    phase: 2
+
+  - name: write-tiktok-script
+    file: tasks/write-tiktok-script.md
+    description: "Sequential script: Brunson Pass A (18-scene narrative) → MrBeast Pass B (sharpen ≤15 words, validate CTA)"
+    workflow: wf-tiktok-planner
+    phase: 3
+
+  - name: publish-to-clickup
+    file: tasks/publish-to-clickup.md
+    description: "Append full roteiro (description + 18-scene script) to ClickUp task and advance to next stage"
+    workflow: wf-tiktok-planner
+    phase: 4
+
+  - name: execute-video-editing
+    file: tasks/execute-video-editing.md
+    description: "Editar vídeo: combinar narração + legendas (Whisper) + concat + BGM; documentar no ClickUp e mover para PUBLICAÇÃO"
+    workflow: wf-video-editing
+    phase: 1
+
+  - name: generate-narration
+    file: tasks/generate-narration.md
+    description: "Interpretar descrição do card ClickUp, gerar MP3 de narração via ElevenLabs TTS por parte"
+    workflow: wf-narration-generator
+    phase: 1
+
+dependencies:
+  - prd: docs/prd/marketing-clones-squad.md
+  - research_base: docs/research/marketing-clones/
+  - integration: integrations/clickup/get-activities.js
+  - integration: integrations/clickup/get-last-edicao-task.js
+  - integration: integrations/video-editor/edit-video.py
+  - integration: integrations/elevenlabs/text-to-speech.js
+  - env: .env (CLICKUP_API_KEY required for all workflows, ELEVENLABS_API_KEY required for wf-narration-generator)
+
+quality_gates:
+  validation_checklist: 10-point authenticity checklist per clone
+  minimum_score: 9/10
+  testing_requirement: 5 test prompts per clone
+  tiktok_planner_gates:
+    - QG-TK-001: "At least 1 ClickUp task in roteiro group"
+    - QG-TK-002: "Both concept files + merged final with 18-beat scene arc"
+    - QG-TK-003: "Caption ≤150 chars + 15-25 hashtags"
+    - QG-TK-004: "Exactly 18 scenes × 5s; ≤15 words per scene; CTA = comment not share"
+    - QG-TK-005: "append-description.js + move-next-stage.js both exit 0; ClickUp task updated and advanced"
+  narration_generator_gates:
+    - QG-NR-001: "At least 1 task in 'criação dos vídeos' group with non-empty description"
+    - QG-NR-002: "All narration parts identified and MP3 files generated with size > 0"
+    - QG-NR-003: "Devolutiva posted to ClickUp; card moved to EDIÇÃO only if all assets complete"

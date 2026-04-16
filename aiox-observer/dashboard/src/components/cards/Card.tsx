@@ -23,7 +23,7 @@ export default function Card({ card, onFlip, isFlipped }: CardProps) {
         </div>
 
         <div className="h-32 bg-border-card/30 rounded mb-4 flex items-center justify-center">
-          <span className="text-lg opacity-50">[{card.type.toUpperCase()}]</span>
+          <span className="text-lg opacity-50">[{(card.type ?? '').toUpperCase()}]</span>
         </div>
 
         <h3 className="font-bold text-lg mb-2">{card.name}</h3>

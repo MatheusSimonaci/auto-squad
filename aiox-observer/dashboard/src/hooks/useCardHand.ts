@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { Card } from '../types';
 import { WORKFLOWS, MENTOR_CARDS, MARKETING_CARDS } from '../data/workflows';
 
@@ -9,13 +9,14 @@ interface HandState {
   playedCards: Card[];
 }
 
-const DECK_CARDS: Record<Card['deck'], Card[]> = {
+const STATIC_DECK_CARDS: Record<Exclude<Card['deck'], 'squads'>, Card[]> = {
   aiox: WORKFLOWS,
   mentors: MENTOR_CARDS,
   marketing: MARKETING_CARDS,
 };
 
 export function useCardHand() {
+  const [squadWorkflows, setSquadWorkflows] = useState<Card[]>([]);
   const [hand, setHand] = useState<HandState>({
     deck: 'aiox',
     cards: WORKFLOWS,
@@ -23,14 +24,21 @@ export function useCardHand() {
     playedCards: [],
   });
 
+  useEffect(() => {
+    fetch('http://localhost:7433/api/workflows')
+      .then((r) => r.json())
+      .then((data) => { if (data.workflows?.length) setSquadWorkflows(data.workflows); })
+      .catch(() => {});
+  }, []);
+
   const selectDeck = useCallback((deck: Card['deck']) => {
     setHand((prev) => ({
       ...prev,
       deck,
-      cards: DECK_CARDS[deck],
+      cards: deck === 'squads' ? squadWorkflows : STATIC_DECK_CARDS[deck as Exclude<Card['deck'], 'squads'>],
       selectedCardId: null,
     }));
-  }, []);
+  }, [squadWorkflows]);
 
   const selectCard = useCallback((cardId: string) => {
     setHand((prev) => ({

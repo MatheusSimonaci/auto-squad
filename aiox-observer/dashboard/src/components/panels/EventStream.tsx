@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Wrench, Users, BookOpen, AlertCircle } from 'lucide-react';
 import { useGameStore } from '../../store/gameStore';
 
-const getEventIcon = (type: string) => {
+const getEventIcon = (type: string = '') => {
   if (type.includes('tool')) return <Wrench className="w-4 h-4" />;
   if (type.includes('agent')) return <Users className="w-4 h-4" />;
   if (type.includes('story')) return <BookOpen className="w-4 h-4" />;
@@ -10,7 +10,7 @@ const getEventIcon = (type: string) => {
   return <Wrench className="w-4 h-4" />;
 };
 
-const getEventColor = (type: string) => {
+const getEventColor = (type: string = '') => {
   if (type.includes('error')) return 'text-hud-red';
   if (type.includes('tool')) return 'text-hud-blue';
   if (type.includes('agent')) return 'text-hud-amber';
@@ -41,7 +41,7 @@ export default function EventStream() {
               </span>
               <div className="flex-1 flex gap-2 items-center">
                 <span className="px-1.5 py-0.5 rounded bg-hud-surface text-hud-text-muted uppercase text-xs">
-                  {event.type.substring(0, 8)}
+                  {(event.type ?? '').substring(0, 8)}
                 </span>
                 {event.agent_hint && (
                   <span className="text-hud-cyan">{event.agent_hint}</span>

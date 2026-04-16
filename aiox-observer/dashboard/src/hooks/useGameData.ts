@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useWebSocket } from './useWebSocket';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = 'http://localhost:7433';
 
 export function useGameData() {
   const { setState } = useGameStore();

@@ -10,6 +10,7 @@ const decks: { id: Card['deck']; label: string; color: string }[] = [
   { id: 'aiox', label: 'AIOX', color: 'text-mana-blue' },
   { id: 'mentors', label: 'Mentors', color: 'text-glow-mentor' },
   { id: 'marketing', label: 'Marketing', color: 'text-glow-market' },
+  { id: 'squads', label: 'Squads', color: 'text-yellow-400' },
 ];
 
 export default function DeckSelector({ selected: selectedProp, onSelect }: DeckSelectorProps) {

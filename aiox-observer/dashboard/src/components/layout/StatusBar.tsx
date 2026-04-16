@@ -24,7 +24,7 @@ export default function StatusBar() {
       <div className="flex items-center gap-3">
         <Cpu className="w-5 h-5 text-hud-cyan" />
         <span className="font-mono text-sm font-semibold text-hud-text">ORION</span>
-        <span className="text-xs text-hud-text-muted">Session: {session.id.substring(0, 8)}</span>
+        <span className="text-xs text-hud-text-muted">Session: {(session?.id ?? '').substring(0, 8) || '—'}</span>
       </div>
 
       {/* Center: Agent Summary */}

@@ -1,0 +1,125 @@
+squad:
+  name: agent-ops
+  version: 1.0.0
+  short-title: Agent Operations Squad
+  description: >-
+    Squad especializado em orquestrar e gerenciar times de agentes de IA em múltiplos
+    projetos de desenvolvimento de software simultâneos. Provê coordenação estratégica,
+    otimização de tokens, visualização de fluxos de trabalho e integração com ClickUp
+    para criar um ambiente de trabalho continuamente melhorado para agentes de IA.
+  author: Synkra AIOS
+  icon: "🤖"
+  entry_agent: ops-chief
+  slashPrefix: agentOps
+
+workspace_integration:
+  level: none
+  rationale: "Squad de gestão de agentes opera de forma autônoma sem necessitar de contexto do workspace"
+  template_namespace: agent-ops
+
+pattern_library:
+  prefix: AO
+  naming_convention:
+    format: "{PREFIX}-{CATEGORY}-{NUMBER}"
+    example: "AO-TP-001"
+  categories:
+    - id: TP
+      name: "Task Patterns"
+      description: "Patterns para orquestração de tarefas entre agentes"
+    - id: EP
+      name: "Executor Patterns"
+      description: "Patterns para seleção e classificação de executores"
+    - id: PP
+      name: "Process Patterns"
+      description: "Patterns para processos de coordenação de workflow"
+    - id: IP
+      name: "Integration Patterns"
+      description: "Patterns para integração com ClickUp e ferramentas externas"
+    - id: AP
+      name: "Automation Patterns"
+      description: "Patterns para automação otimizada de tokens"
+    - id: OP
+      name: "Optimization Patterns"
+      description: "Patterns para eficiência de recursos e tokens"
+  patterns: []
+
+task_standards:
+  enforce_anatomy: true
+  validator: "AO-TP-001"
+  required_fields:
+    - task_name
+    - status
+    - responsible_executor
+    - execution_type
+    - input
+    - output
+    - action_items
+    - acceptance_criteria
+  optional_fields:
+    - estimated_time
+    - dependencies
+    - templates
+    - quality_gate
+    - handoff
+
+executor_types:
+  human:
+    id: "AO-EP-001"
+    name: "Human Executor"
+    characteristics: [judgment, creativity, relationships]
+    cost: "$$$"
+    speed: slow
+    use_for:
+      - "Decisões estratégicas de time"
+      - "Gestão de stakeholders"
+      - "Priorização de projetos"
+  agent:
+    id: "AO-EP-002"
+    name: "Agent Executor (AI)"
+    characteristics: [analysis, generation, pattern_recognition]
+    cost: "$$$$"
+    speed: fast
+    use_for:
+      - "Coordenação entre agentes"
+      - "Análise de desempenho"
+      - "Otimização de workflows"
+  hybrid:
+    id: "AO-EP-003"
+    name: "Hybrid Executor"
+    characteristics: [ai_assisted, human_validated]
+    cost: "$$"
+    speed: moderate
+    use_for:
+      - "Validação de integrações"
+      - "Revisão de relatórios"
+      - "Quality assurance de outputs"
+  worker:
+    id: "AO-EP-004"
+    name: "Worker Executor"
+    characteristics: [deterministic, api_integration, file_operations]
+    cost: "$"
+    speed: very_fast
+    use_for:
+      - "Sync com ClickUp"
+      - "Contagem de tokens"
+      - "Agregação de logs"
+      - "Automações determinísticas"
+
+executor_selection:
+  requires_creativity: human
+  requires_judgment: [human, hybrid]
+  requires_speed: [agent, worker]
+  requires_consistency: worker
+  requires_validation: hybrid
+  requires_learning: agent
+
+workflow_config:
+  checkpoint_policy: always_active
+  checkpoint_modes:
+    always_active: "Todo checkpoint DEVE passar"
+    skip_on_override: "Pode pular com aprovação manual"
+    advisory: "Apenas alertas, não bloqueia"
+  fail_fast: true
+  allow_manual_override: false
+
+tested: false

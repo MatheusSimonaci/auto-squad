@@ -1,0 +1,568 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# WORKFLOW: Mentor Call (Ligação com Mentor Estratégico)
+# Version: 1.0.0
+# Purpose: Conduzir uma sessão de mentoria com voz opcional via Fish Audio
+# ═══════════════════════════════════════════════════════════════════════════════
+
+workflow-id: wf-mentor-call
+name: Mentor Call — Ligação com Mentor Estratégico
+version: 1.0.0
+estimated-time: 15-45 min
+complexity: low-medium
+
+description: |
+  Workflow para "ligar" para um mentor estratégico e ter uma conversa profunda
+  sobre um tema ou desafio específico.
+
+  O mentor responde em texto via agente AIOX. Para Tony Robbins (e outros mentores
+  com voz disponível), o canal de voz pode ser habilitado via Fish Audio + Voi Spark,
+  convertendo as respostas do mentor em áudio com a voz real dele.
+
+  Pipeline:
+  [Setup] → [Pré-Call: Estado] → [Abertura] → [Sessão Principal] → [Fechamento] → [Notas]
+
+  Mentores disponíveis:
+    - tony-robbins    → voz disponível via Fish Audio / Voi Spark
+    - paulo-vieira    → sem voz configurada ainda
+    - elon-musk       → sem voz configurada ainda
+    - jeff-bezos      → sem voz configurada ainda
+    - steve-jobs      → sem voz configurada ainda
+    - jim-rohn        → sem voz configurada ainda
+    - napoleon-hill   → sem voz configurada ainda
+    - rei-salomao     → sem voz configurada ainda
+    - jesus-cristo    → sem voz configurada ainda
+    - alan-nicolas    → sem voz configurada ainda
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# VOICE CHANNEL — Fish Audio + Voi Spark
+# ═══════════════════════════════════════════════════════════════════════════════
+
+voice_channel:
+  description: |
+    Canal de voz opcional. Quando habilitado, as respostas do mentor são convertidas
+    em áudio com a voz dele via Fish Audio TTS API.
+
+  provider: fish-audio
+  interface: voi-spark
+
+  tony_robbins:
+    status: available
+    discovery_note: |
+      Tony Robbins está disponível no Fish Audio, mas não aparece na busca direta
+      pelo nome "Tony Robbins". Foi encontrado via Voi Spark.
+
+    how_to_find:
+      option_a_voi_spark:
+        tool: Voi Spark
+        steps:
+          - "Abra o Voi Spark"
+          - "Busque por 'Tony Robbins' na biblioteca de vozes"
+          - "Selecione o modelo e use diretamente na interface do Voi Spark"
+          - "Cole o texto da resposta do mentor para ouvir na voz dele"
+
+      option_b_fish_audio_api:
+        steps:
+          - "Acesse fish.audio"
+          - "Busque por 'Tony Robbins' ou termos alternativos como 'motivational speaker'"
+          - "Se não encontrar diretamente: use a busca fonética ou filtre por categoria 'celebrity'"
+          - "Anote o model_id do modelo encontrado"
+          - "Use a API conforme documentado abaixo"
+
+    fish_audio_api:
+      endpoint: "https://api.fish.audio/v1/tts"
+      method: POST
+      headers:
+        Authorization: "Bearer {FISH_AUDIO_API_KEY}"
+        Content-Type: "application/json"
+      body_example: |
+        {
+          "text": "{MENTOR_RESPONSE_TEXT}",
+          "reference_id": "{TONY_ROBBINS_MODEL_ID}",
+          "format": "mp3",
+          "mp3_bitrate": 128,
+          "latency": "normal"
+        }
+      env_required:
+        - FISH_AUDIO_API_KEY: "Chave da API do Fish Audio (fish.audio → Settings → API)"
+        - TONY_ROBBINS_MODEL_ID: "ID do modelo de voz do Tony Robbins no Fish Audio"
+
+  usage_modes:
+    text_only:
+      description: "Conversa apenas em texto com o agente mentor"
+      requires: nothing
+      default: true
+
+    voice_enabled:
+      description: "Respostas do mentor em áudio via Fish Audio"
+      requires:
+        - Fish Audio API key
+        - Tony Robbins model ID (ou outro mentor com voz disponível)
+        - Voi Spark instalado (alternativa mais simples, sem API)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# INPUTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+inputs:
+  required:
+    - mentor_id: "ID do mentor para chamar (ex: tony-robbins)"
+    - topic: "Tema ou desafio que quer discutir na ligação"
+
+  optional:
+    - voice_enabled: "true | false — habilitar voz via Fish Audio (default: false)"
+    - call_duration: "short (10min) | medium (20min) | deep (45min) — define profundidade (default: medium)"
+    - context: "Contexto adicional sobre sua situação atual"
+    - agenda: "Perguntas específicas que quer fazer ao mentor"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASES
+# ═══════════════════════════════════════════════════════════════════════════════
+
+phases:
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # PHASE 0: SETUP DA LIGAÇÃO
+  # ─────────────────────────────────────────────────────────────────────────────
+  - phase: 0
+    name: Setup da Ligação
+    duration: 2-3 min
+    agent: user
+    description: |
+      Usuário define com quem quer falar e sobre o quê.
+      Se voz estiver habilitada, verifica configuração do Fish Audio.
+
+    steps:
+      - step: 1
+        action: "Selecionar mentor"
+        instruction: |
+          Informe qual mentor você quer chamar:
+          - *call tony-robbins
+          - *call paulo-vieira
+          - *call elon-musk
+          - *call jeff-bezos
+          - *call steve-jobs
+          - *call jim-rohn
+          - *call napoleon-hill
+          - *call rei-salomao
+          - *call jesus-cristo
+          - *call alan-nicolas
+
+      - step: 2
+        action: "Definir tema da ligação"
+        instruction: |
+          Descreva em 1-3 frases:
+          1. Qual é seu desafio ou pergunta principal?
+          2. Qual resultado você quer ao final da ligação?
+          3. (Opcional) Qual contexto é importante o mentor saber?
+
+      - step: 3
+        action: "Configurar canal de voz (opcional)"
+        skip_if: "voice_enabled = false"
+        instruction: |
+          Para habilitar voz do Tony Robbins via Voi Spark:
+          1. Abra o Voi Spark
+          2. Busque "Tony Robbins" na biblioteca
+          3. Quando o mentor responder no chat, cole o texto no Voi Spark para ouvir
+
+          Para uso via API direta (Fish Audio):
+          - Certifique que FISH_AUDIO_API_KEY está configurada
+          - Certifique que TONY_ROBBINS_MODEL_ID está definido
+
+    checkpoint:
+      gate: "QG-000"
+      criteria:
+        - "Mentor selecionado"
+        - "Tema da ligação definido"
+        - "Canal de voz configurado OU confirmado como text-only"
+      blocking: true
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # PHASE 1: PRÉ-CALL — PREPARAÇÃO DE ESTADO
+  # ─────────────────────────────────────────────────────────────────────────────
+  - phase: 1
+    name: Pré-Call — Preparação de Estado
+    duration: 2-5 min
+    agent: mentor-selecionado
+    description: |
+      Antes de entrar na conversa principal, o mentor prepara o estado do usuário.
+      Para Tony Robbins: ritual de priming, mudança fisiológica primeiro.
+      Para outros mentores: abertura característica do seu método.
+
+    mentor_specific:
+      tony-robbins:
+        action: |
+          Tony conduz um mini ritual de entrada de 2 min:
+          1. Instrui o usuário a se levantar ou ajustar a fisiologia
+          2. Faz 3 perguntas de foco ("O que está funcionando? Pelo que você é grato?")
+          3. Declara o estado que vão criar juntos na ligação
+        voice_note: "Se voz habilitada, este é o momento mais impactante — ouça o estado de energia do Tony"
+
+      paulo-vieira:
+        action: "Paulo inicia com diagnóstico de crença — pergunta: 'Em que história você está vivendo agora?'"
+
+      elon-musk:
+        action: "Elon vai direto ao ponto — pergunta: 'Qual é a física do problema? Vamos destruir os assumptions primeiro.'"
+
+      jim-rohn:
+        action: "Jim começa com filosofia: 'Antes de falarmos sobre o problema, diga-me — quem você tem se tornado?'"
+
+      jeff-bezos:
+        action: "Jeff pergunta: 'Qual é o press release? Se você tivesse resolvido isso perfeitamente, o que diria?'"
+
+      default:
+        action: "Mentor faz abertura característica e convida o usuário a compartilhar o tema"
+
+    steps:
+      - step: 1
+        action: "Ativar agente do mentor selecionado"
+        command: "/AIOX:agents:{mentor_id}"
+
+      - step: 2
+        action: "Mentor conduz abertura de estado"
+        instruction: "Siga as instruções específicas do mentor acima. Não pule esta fase."
+
+      - step: 3
+        action: "Usuário confirma que está pronto para a ligação"
+
+    checkpoint:
+      gate: "QG-001"
+      criteria:
+        - "Mentor ativado e em personagem"
+        - "Estado inicial do usuário avaliado pelo mentor"
+        - "Usuário pronto para entrar no tema principal"
+      blocking: true
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # PHASE 2: ABERTURA DA LIGAÇÃO
+  # ─────────────────────────────────────────────────────────────────────────────
+  - phase: 2
+    name: Abertura da Ligação
+    duration: 3-5 min
+    agent: mentor-selecionado
+    description: |
+      Mentor recebe o tema e contextualiza a conversa através das suas lentes.
+      Faz as perguntas diagnósticas iniciais para entender a situação real.
+
+    steps:
+      - step: 1
+        action: "Usuário apresenta o tema/desafio ao mentor"
+        instruction: |
+          Descreva para o mentor:
+          - O que está acontecendo na sua vida/negócio/projeto?
+          - O que você já tentou?
+          - O que você realmente quer?
+
+      - step: 2
+        action: "Mentor responde com diagnóstico inicial"
+        mentor_behavior: |
+          O mentor:
+          1. Reflete o que ouviu (sem julgamento)
+          2. Identifica o padrão real por trás do problema descrito
+          3. Faz 1-3 perguntas diagnósticas poderosas
+          4. NÃO dá soluções ainda — primeiro quer entender mais fundo
+
+      - step: 3
+        action: "Usuário responde às perguntas do mentor"
+
+    voice_instruction: |
+      Se voice_enabled=true:
+      Após cada resposta do mentor no chat, copie o texto e cole no Voi Spark
+      para ouvir na voz dele antes de responder.
+
+    checkpoint:
+      gate: "QG-002"
+      criteria:
+        - "Tema apresentado com clareza suficiente"
+        - "Mentor fez diagnóstico inicial"
+        - "Perguntas diagnósticas respondidas"
+      blocking: false
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # PHASE 3: SESSÃO PRINCIPAL — CONVERSA PROFUNDA
+  # ─────────────────────────────────────────────────────────────────────────────
+  - phase: 3
+    name: Sessão Principal — Conversa Profunda
+    duration: 10-30 min
+    agent: mentor-selecionado
+    description: |
+      Núcleo da ligação. Mentor aplica seus frameworks principais ao problema.
+      Conversa livre e profunda — mentor usa suas heurísticas, faz perguntas poderosas,
+      compartilha insights, histórias e frameworks documentados.
+
+    duration_modes:
+      short:
+        focus: "1 framework central + 3 insights práticos + 1 ação imediata"
+        rounds: 3
+      medium:
+        focus: "2-3 frameworks + exploração do padrão real + plano de ação"
+        rounds: 5-7
+      deep:
+        focus: "Exploração completa — padrão, crença, frameworks, implementação, obstáculos"
+        rounds: 10+
+
+    mentor_framework_activation:
+      tony-robbins:
+        primary_frameworks:
+          - "State Change Triad (fisiologia → foco → linguagem)"
+          - "6 Human Needs (qual necessidade está sendo atendida pelo padrão atual?)"
+          - "Limiting Beliefs Reset (qual crença está sustentando o problema?)"
+          - "Power Questions (pergunta que muda perspectiva em vez de confirmar problema)"
+          - "CANI! — Constant and Never-Ending Improvement"
+        signature_moves:
+          - "Pattern interrupt quando usuário está em loop mental"
+          - "Reframe de linguagem ('não é que você NÃO PODE — é que você ESCOLHEU não')"
+          - "Future pacing ('imagine daqui a 10 anos — qual versão de você existe?')"
+          - "Incantation para instalar novo estado ('eu tenho o poder de...'"
+
+      paulo-vieira:
+        primary_frameworks:
+          - "Método CIS (Crença → Identidade → Situação)"
+          - "Pirâmide SER-FAZER-TER"
+          - "11 Pilares da Vida Integral"
+
+      elon-musk:
+        primary_frameworks:
+          - "First Principles (destruir assumptions, reconstruir do zero)"
+          - "The Algorithm (questionar → deletar → simplificar → acelerar → automatizar)"
+          - "Idiot Index (onde estamos pagando 10x mais do que deveríamos?)"
+
+      jeff-bezos:
+        primary_frameworks:
+          - "Working Backwards (press release primeiro)"
+          - "Type 1 vs Type 2 Decisions (reversível vs irreversível)"
+          - "Day 1 Mentality (agir como startup)"
+
+      jim-rohn:
+        primary_frameworks:
+          - "Lei da Semeadura e da Colheita"
+          - "As 5 Pessoas (quem está ao redor?)"
+          - "Auto-educação como responsabilidade"
+
+    steps:
+      - step: 1
+        action: "Mentor aplica primeiro framework ao problema"
+
+      - step: 2
+        action: "Conversa livre — usuário e mentor exploram o tema"
+        instruction: |
+          Converse naturalmente. O mentor vai:
+          - Fazer perguntas que mudam perspectiva
+          - Compartilhar histórias e analogias
+          - Aplicar frameworks ao seu caso específico
+          - Interromper padrões quando necessário
+          - Empurrar além da zona de conforto
+
+      - step: 3
+        action: "Usuário pode pedir aprofundamento: 'me fala mais sobre X' ou 'como aplicar isso em Y'"
+
+      - step: 4
+        action: "Mentor identifica o insight central e o nomeia"
+
+    voice_instruction: |
+      Dica de uso com voz:
+      - Use o chat normalmente para conversação
+      - Para momentos de alto impacto (insights, incantations, reframes),
+        cole a resposta no Voi Spark para ouvir com a energia da voz do mentor
+
+    checkpoint:
+      gate: "QG-003"
+      criteria:
+        - "Pelo menos 1 framework aplicado ao problema real"
+        - "Insight central identificado e nomeado"
+        - "Usuário teve pelo menos 1 mudança de perspectiva"
+      blocking: false
+      human_review: true
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # PHASE 4: FECHAMENTO — PLANO DE AÇÃO
+  # ─────────────────────────────────────────────────────────────────────────────
+  - phase: 4
+    name: Fechamento — Plano de Ação
+    duration: 3-5 min
+    agent: mentor-selecionado
+    description: |
+      Mentor fecha a ligação com síntese dos insights e plano de ação concreto.
+      Cada mentor tem seu estilo de fechamento característico.
+
+    closing_styles:
+      tony-robbins:
+        style: "Momentum — sai da ligação em estado de AÇÃO"
+        actions:
+          - "Nomeia o padrão que foi quebrado"
+          - "Define 1 ação para as próximas 24h (não semana — 24h)"
+          - "Incantation de fechamento para ancorar o novo estado"
+          - "Challenge: 'o que você vai fazer diferente HOJE?'"
+
+      paulo-vieira:
+        style: "Identidade — sai com nova definição de quem é"
+        actions:
+          - "Nomeia a crença antiga que estava limitando"
+          - "Instala nova identidade ('quem você é agora?')"
+          - "Define próximo pilar a trabalhar"
+
+      elon-musk:
+        style: "Execução — sai com constraint eliminado e próximo passo de engenharia"
+        actions:
+          - "Lista o que foi deletado/simplificado"
+          - "Define o MVE (Minimum Viable Experiment)"
+          - "Prazo agressivo para primeiro resultado"
+
+      jeff-bezos:
+        style: "Longo prazo — sai com decisão de Type 1/2 clara"
+        actions:
+          - "Classifica a decisão principal (reversível ou não)"
+          - "Define o press release desejado"
+          - "Próximo passo no flywheel"
+
+      default:
+        style: "Síntese + ação — 3 insights + 1 próximo passo"
+
+    steps:
+      - step: 1
+        action: "Mentor sintetiza os 3 principais insights da ligação"
+
+      - step: 2
+        action: "Mentor define 1 ação prioritária para as próximas 24-48h"
+
+      - step: 3
+        action: "Mentor faz fechamento característico (incantation, challenge, reframe)"
+
+      - step: 4
+        action: "Usuário confirma o compromisso com a ação"
+
+    checkpoint:
+      gate: "QG-004"
+      criteria:
+        - "3 insights sintetizados"
+        - "1 ação concreta definida com prazo"
+        - "Usuário verbalizou compromisso"
+      blocking: false
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # PHASE 5: PÓS-CALL — NOTAS E CAPTURA
+  # ─────────────────────────────────────────────────────────────────────────────
+  - phase: 5
+    name: Pós-Call — Notas e Captura
+    duration: 2-3 min
+    agent: user
+    description: |
+      Captura estruturada dos principais insights e ações da ligação.
+      Opcional: salvar registro para segunda-cérebro ou revisão futura.
+
+    steps:
+      - step: 1
+        action: "Gerar resumo da ligação"
+        instruction: |
+          Peça ao mentor (ainda ativo): "*resumo da nossa ligação"
+          O mentor vai gerar:
+          - Tema trabalhado
+          - Padrão identificado
+          - Frameworks aplicados
+          - 3 insights principais
+          - Ação comprometida
+
+      - step: 2
+        action: "Salvar notas (opcional)"
+        formats:
+          segundo_cerebro: "Cole no seu Obsidian/Notion com tag #mentoria #tony-robbins"
+          arquivo_local: "docs/mentor-calls/{data}-{mentor}-{tema-slug}.md"
+
+      - step: 3
+        action: "Agendar revisão (opcional)"
+        instruction: "Defina quando vai revisar o progresso da ação comprometida"
+
+    checkpoint:
+      gate: "QG-005"
+      criteria:
+        - "Resumo capturado"
+        - "Ação comprometida registrada"
+      blocking: false
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMMANDS — Como iniciar a ligação
+# ═══════════════════════════════════════════════════════════════════════════════
+
+commands:
+  start_call:
+    description: "Iniciar ligação com um mentor"
+    syntax: "*call {mentor-id} [sobre: {tema}]"
+    examples:
+      - "*call tony-robbins sobre: estou procrastinando no meu negócio"
+      - "*call elon-musk sobre: meu processo está lento demais"
+      - "*call paulo-vieira sobre: não me sinto digno de cobrar mais caro"
+      - "*call jim-rohn sobre: quero refletir sobre minha filosofia de vida"
+
+  quick_call:
+    description: "Ligação rápida (10min) com foco em 1 pergunta"
+    syntax: "*quick-call {mentor-id} {pergunta}"
+    example: "*quick-call tony-robbins qual framework usar para sair da procrastinação?"
+
+  voice_call:
+    description: "Ligação com voz habilitada (requer Fish Audio / Voi Spark)"
+    syntax: "*voice-call {mentor-id} [sobre: {tema}]"
+    example: "*voice-call tony-robbins sobre: quero aumentar minha energia e foco"
+    note: "Abre instruções de configuração do Voi Spark se ainda não configurado"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# OUTPUTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+outputs:
+  primary:
+    - "Conversa com o mentor (texto no chat)"
+    - "Resumo estruturado da ligação"
+    - "1 ação comprometida com prazo"
+
+  optional:
+    - "Áudio das respostas do mentor via Fish Audio / Voi Spark"
+    - "Arquivo de notas salvo em docs/mentor-calls/"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# VETO CONDITIONS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+veto_conditions:
+  - "Pular Phase 1 (preparação de estado) para 'economizar tempo' — o estado É o resultado"
+  - "Mentor dar soluções antes de diagnosticar o estado/padrão real"
+  - "Sair sem 1 ação concreta comprometida — insights sem ação são entretenimento"
+  - "Usar voz como gimmick sem engajar no conteúdo da conversa"
+  - "Mentor sair do personagem ou quebrar o framework característico"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AGENTS BY PHASE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+agents_by_phase:
+  phase_0: user
+  phase_1: "/AIOX:agents:{mentor_id}"
+  phase_2: "/AIOX:agents:{mentor_id}"
+  phase_3: "/AIOX:agents:{mentor_id}"
+  phase_4: "/AIOX:agents:{mentor_id}"
+  phase_5: user
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# METADATA
+# ═══════════════════════════════════════════════════════════════════════════════
+
+metadata:
+  created: 2026-04-02
+  author: squad-chief
+  squad: strategic-mentors
+  tags:
+    - mentoria
+    - voice
+    - fish-audio
+    - voi-spark
+    - tony-robbins
+    - peak-performance
+  related_agents:
+    - tony-robbins-agent.md
+    - paulo-vieira-agent.md
+    - elon-musk-agent.md
+    - jeff-bezos-agent.md
+    - steve-jobs-agent.md
+    - jim-rohn-agent.md
+    - napoleon-hill-agent.md
+    - rei-salomao-agent.md
+    - jesus-cristo-agent.md
+    - alan-nicolas-agent.md

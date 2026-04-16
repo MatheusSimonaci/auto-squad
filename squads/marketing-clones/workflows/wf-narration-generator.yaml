@@ -1,0 +1,433 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# WORKFLOW: TikTok Narration Generator
+# Version: 1.0.0
+# Purpose: Busca tarefas do ClickUp no grupo "CRIAÇÃO DOS VÍDEOS", agente
+#          interpreta a descrição, gera áudio MP3 via ElevenLabs para cada
+#          parte de narração, e documenta resultado no card ClickUp.
+#          Move para EDIÇÃO apenas quando todos assets estão completos.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+workflow:
+  id: wf-narration-generator
+  name: "TikTok Narration Generator"
+  version: "1.0.0"
+  status: active
+  orchestrator: "marketing-agent"
+  duration: "3-10 minutes"
+  description: |
+    Pipeline de geração de narrações TTS para vídeos TikTok.
+    Busca tarefas do ClickUp no grupo "CRIAÇÃO DOS VÍDEOS",
+    agente interpreta a descrição, gera áudio MP3 via ElevenLabs
+    para cada parte, e documenta resultado no card.
+
+    V1: Narração only. Fases futuras (geração de vídeo AI, montagem)
+    podem ser inseridas entre PHASE-1 e PHASE-2.
+
+    Move para EDIÇÃO apenas quando TODOS os assets estão completos:
+    - Partes de vídeo (MP4) na pasta
+    - Música de fundo definida
+    - Narração gerada (este workflow)
+
+  best_for:
+    - "Tarefas no grupo CRIAÇÃO DOS VÍDEOS do ClickUp com texto de narração"
+    - "Geração automatizada de TTS via ElevenLabs"
+    - "Canais: biblia-em-imagens (ativo), tiktok-shop, informante-ai (pending)"
+
+  decision_matrix_fit:
+    trigger: "Tarefa em CRIAÇÃO DOS VÍDEOS no ClickUp com texto de narração"
+    primary_output: "Arquivos parteN.mp3 na pasta do vídeo + devolutiva no card"
+    automation_level: "agent-driven — agente interpreta descrição e executa TTS"
+
+  clone_combinations:
+    primary: "marketing-agent (qualquer clone ativo)"
+    secondary:
+      - "N/A — agente executa diretamente via scripts de integração"
+
+trigger:
+  type: agent-invocation
+  condition: "Agente de marketing recebe comando *narration-gen ou tarefa em CRIAÇÃO DOS VÍDEOS"
+
+inputs:
+  required:
+    - channel: "biblia-em-imagens | tiktok-shop | informante-ai"
+  optional:
+    - task_id_override: "Forçar um task ID específico (pula fetch do ClickUp)"
+    - voice_id: "ElevenLabs voice ID override (padrão: Brian — nPczCjzI2devNBz1zQrb)"
+
+channel_profiles:
+  biblia-em-imagens:
+    status: active
+    clickup_list_id: "901326517287"
+    clickup_group_criacao: "criação dos vídeos"
+    language: pt-BR
+    default_voice_id: null  # usa ElevenLabs default (Brian)
+
+  tiktok-shop:
+    status: pending_configuration
+    clickup_list_id: "901326229706"
+    clickup_group_criacao: "criação dos vídeos"
+    language: pt-BR
+
+  informante-ai:
+    status: pending_configuration
+    clickup_list_id: "901326318049"
+    clickup_group_criacao: "criação dos vídeos"
+    language: pt-BR
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 0: Fetch ClickUp Task (CRIAÇÃO DOS VÍDEOS)
+# ═══════════════════════════════════════════════════════════════════════════════
+phases:
+  - id: PHASE-0
+    name: "Fetch ClickUp CRIAÇÃO DOS VÍDEOS Task"
+    agent: "marketing-agent"
+    days: "0"
+    tier: 0
+    description: |
+      Busca tarefas no grupo "CRIAÇÃO DOS VÍDEOS" do ClickUp para o canal ativo.
+      Retorna task_id, task_name, description e dados da tarefa.
+      O campo description contém o texto de narração que o agente vai interpretar.
+      Aborta o workflow se nenhuma tarefa for encontrada ou se description estiver vazia.
+
+    tasks:
+      - task_file: integrations/clickup/get-activities.js
+        agent: marketing-agent
+        required: true
+        description: "Buscar tarefas no grupo 'criação dos vídeos' via ClickUp API"
+        output: "Lista de tasks com id, name, status, description"
+        notes: |
+          Executar: node integrations/clickup/get-activities.js {list_id} "criação dos vídeos"
+          O campo description agora é incluído no output (ajuste de 2026-03-24).
+          Agente seleciona a tarefa adequada da lista retornada.
+
+    post_fetch:
+      description: "Após fetch, agente deve extrair e preparar dados"
+      steps:
+        - "Selecionar tarefa da lista (primeira pendente ou escolha do usuário se múltiplas)"
+        - "Extrair: task_id, task_name, description"
+        - "Gerar task_slug: lowercase, hyphens, sem acentos, max 60 chars"
+        - "Criar diretório: mkdir -p output/tiktok/{channel}/{task_slug}/"
+        - "Validar: description não vazia"
+
+    checkpoint:
+      criteria:
+        - "get-activities.js retorna ≥ 1 tarefa no grupo 'criação dos vídeos'"
+        - "Tarefa selecionada possui description não vazia"
+        - "task_slug gerado — lowercase, hyphen-separated"
+        - "Diretório output/tiktok/{channel}/{task_slug}/ criado"
+      human_review: false
+      message: "CHECKPOINT:PHASE-0 — task_id obtido: {task_id}. Descrição com {chars} caracteres. Avançando para geração de narração."
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 1: Generate Narrations (AGENT-DRIVEN)
+# ═══════════════════════════════════════════════════════════════════════════════
+  - id: PHASE-1
+    name: "Generate Narrations"
+    agent: "marketing-agent"
+    days: "0"
+    tier: 1
+    description: |
+      Fase central do workflow — agent-driven.
+      O agente interpreta a descrição do card ClickUp (texto livre),
+      identifica os textos de narração para cada parte do vídeo,
+      e executa text-to-speech.js para gerar um MP3 por parte.
+
+      O agente NÃO depende de formato rígido na descrição.
+      Usa raciocínio LLM para extrair os textos de narração.
+
+    tasks:
+      - task_file: squads/marketing-clones/tasks/generate-narration.md
+        agent: marketing-agent
+        required: true
+        description: "Interpretar descrição, identificar partes de narração, gerar MP3 via ElevenLabs"
+        output: "output/tiktok/{channel}/{task_slug}/parteN.mp3"
+        notes: |
+          Para cada parte identificada, executar:
+            node integrations/elevenlabs/text-to-speech.js "<texto>" "output/tiktok/{channel}/{task_slug}/parteN.mp3"
+
+          Opcionalmente com voice_id:
+            node integrations/elevenlabs/text-to-speech.js "<texto>" "output/tiktok/{channel}/{task_slug}/parteN.mp3" <voice_id>
+
+          Executar sequencialmente para evitar rate limits.
+          Validar cada MP3 após geração (file exists, size > 0).
+
+    checkpoint:
+      criteria:
+        - "Pelo menos 1 parte de narração identificada na descrição"
+        - "Todos os arquivos parteN.mp3 existem no diretório de saída"
+        - "Todos os arquivos possuem size > 0 bytes"
+        - "Nomes seguem padrão: parte1.mp3, parte2.mp3, ..."
+      human_review: false
+      message: "CHECKPOINT:PHASE-1 — {count} narrações geradas em output/tiktok/{channel}/{task_slug}/. Avançando para documentação."
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 2: Document & Advance (CONDICIONAL)
+# ═══════════════════════════════════════════════════════════════════════════════
+  - id: PHASE-2
+    name: "Document & Advance"
+    agent: "marketing-agent"
+    days: "0"
+    tier: 2
+    description: |
+      Documenta o resultado da geração de narração na tarefa ClickUp.
+      Posta devolutiva com lista de arquivos gerados, tamanhos e status.
+
+      AVANÇO CONDICIONAL para EDIÇÃO:
+      Após gerar narrações, o agente verifica se TODOS os assets necessários
+      para edição de vídeo estão prontos. Somente se TUDO estiver completo
+      a tarefa é movida para "EDIÇÃO". Caso contrário, apenas a devolutiva
+      é postada e o card permanece em "CRIAÇÃO DOS VÍDEOS".
+
+    tasks:
+      - task_file: integrations/clickup/append-description.js
+        agent: marketing-agent
+        required: true
+        description: "Anexar devolutiva da narração à tarefa ClickUp"
+        output: "Tarefa ClickUp atualizada com bloco '## Resultado da Narração'"
+        notes: |
+          Executar:
+            node integrations/clickup/append-description.js {task_id} "<devolutiva_markdown>"
+
+          Formato da devolutiva:
+          ## Resultado da Narração
+
+          - **Status:** ✅ Concluído com sucesso
+          - **Partes geradas:** {N}
+          - **Canal:** {channel}
+          - **Pasta:** `output/tiktok/{channel}/{task_slug}/`
+          - **Data:** {timestamp}
+
+          ### Arquivos Gerados
+          - `parte1.mp3` — {size} KB
+          - `parte2.mp3` — {size} KB
+          ...
+
+      - task_file: integrations/clickup/move-next-stage.js
+        agent: marketing-agent
+        required: false  # condicional — só executa se tudo pronto
+        description: "Mover tarefa para EDIÇÃO (somente se todos assets estão completos)"
+        output: "Tarefa no status EDIÇÃO"
+        notes: |
+          CONDICIONAL — executar SOMENTE se TODAS as condições forem atendidas:
+            1. Pasta contém parteN.mp4 para cada parte (vídeos das cenas)
+            2. Música de fundo definida (mencionada no card ou presente na pasta)
+            3. Narração pronta (parteN.mp3 gerados nesta execução)
+
+          Se TUDO pronto:
+            node integrations/clickup/move-next-stage.js {task_id} --status "edição"
+
+          Se FALTA algo:
+            NÃO mover o card. Incluir na devolutiva o que ainda falta:
+            "### Pendências para EDIÇÃO
+            - [ ] Partes de vídeo (MP4): {status}
+            - [ ] Música de fundo: {status}
+            - [x] Narração: ✅ Gerada"
+
+    advance_to_edicao:
+      condition: ALL_MET
+      checks:
+        - id: video_parts
+          check: "Pasta output/tiktok/{channel}/{task_slug}/ contém parteN.mp4 para cada parte do vídeo"
+          source: "filesystem — ls output/tiktok/{channel}/{task_slug}/*.mp4"
+        - id: bgm_defined
+          check: "Música de fundo identificada — mencionada na descrição do card OU arquivo presente na pasta"
+          source: "description do card + filesystem"
+        - id: narration_ready
+          check: "Todos parteN.mp3 gerados nesta execução com size > 0"
+          source: "resultado de PHASE-1"
+      on_all_met: "node integrations/clickup/move-next-stage.js {task_id} --status 'edição'"
+      on_incomplete: |
+        Postar devolutiva adicional com checklist do que falta.
+        NÃO mover o card — permanece em CRIAÇÃO DOS VÍDEOS.
+
+    checkpoint:
+      criteria:
+        - "append-description.js sai com código 0"
+        - "Devolutiva documentada na tarefa ClickUp"
+        - "Se tudo pronto: tarefa movida para EDIÇÃO"
+        - "Se falta algo: pendências listadas na devolutiva"
+      human_review: false
+      message: "COMPLETE — Narração documentada em {task_id}. Status: {moved_or_pending}."
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMPLETION SIGNALS
+# ═══════════════════════════════════════════════════════════════════════════════
+completion_signal: "<promise>COMPLETE</promise>"
+checkpoint_signal: "<promise>CHECKPOINT:PHASE-{N}</promise>"
+blocked_signal: "<promise>BLOCKED:WF-NR-01</promise>"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ERROR HANDLING
+# ═══════════════════════════════════════════════════════════════════════════════
+error_handling:
+  on_phase_failure:
+    - log_error: true
+    - notify_stakeholders: false
+    - create_remediation_task: false
+    - halt_workflow: true
+
+  on_checkpoint_failure:
+    - log_failure_reason: true
+    - return_to_previous_phase: false
+    - max_retries: 1
+
+  phase_specific:
+    PHASE-0:
+      no_tasks_found: "Parar workflow — nenhuma tarefa em CRIAÇÃO DOS VÍDEOS no ClickUp"
+      empty_description: "Parar workflow — tarefa encontrada mas description está vazia"
+      api_error: "Verificar CLICKUP_API_KEY no .env e tentar novamente"
+    PHASE-1:
+      no_narration_found: "Agente não conseguiu identificar textos de narração na descrição — reportar ao usuário"
+      elevenlabs_401: "API key inválida — verificar ELEVENLABS_API_KEY no .env"
+      elevenlabs_422: "Parâmetros inválidos — verificar voice_id e texto"
+      partial_failure: "Algumas partes falharam — continuar com as demais e reportar falhas"
+    PHASE-2:
+      document_failure: "Registrar erro manualmente na tarefa ClickUp"
+      move_failure: "Mover tarefa manualmente no ClickUp para EDIÇÃO"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CHECKPOINT CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════════════════
+checkpoint_config:
+  - phase: PHASE-0
+    heuristic: "QG-NR-001"
+    criteria: "≥1 task em 'criação dos vídeos' com description não vazia"
+    veto_condition: "Nenhuma tarefa retornada ou description vazia → ABORTAR"
+
+  - phase: PHASE-1
+    heuristic: "QG-NR-002"
+    criteria: "Todos parteN.mp3 existem com size > 0"
+    veto_condition: "Nenhuma parte identificada → ABORTAR e reportar"
+
+  - phase: PHASE-2
+    heuristic: "QG-NR-003"
+    criteria: "Devolutiva postada + avanço condicional verificado"
+    veto_condition: "append-description falhou → tentar novamente 1x; se persistir → ABORTAR"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# OUTPUT ARTIFACTS
+# ═══════════════════════════════════════════════════════════════════════════════
+outputs:
+  primary:
+    - "output/tiktok/{channel}/{task_slug}/parteN.mp3 — áudios de narração TTS"
+  clickup:
+    - "Bloco '## Resultado da Narração' anexado à tarefa"
+    - "Tarefa avançada para EDIÇÃO (condicional — somente se todos assets prontos)"
+  logs:
+    - "Saída de cada chamada text-to-speech.js (stdout)"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AGENT ASSIGNMENTS BY PHASE
+# ═══════════════════════════════════════════════════════════════════════════════
+agents_by_phase:
+  PHASE-0:
+    primary:
+      - "marketing-agent (qualquer clone ativo)"
+    secondary: []
+  PHASE-1:
+    primary:
+      - "marketing-agent (qualquer clone ativo)"
+    secondary:
+      - "text-to-speech.js (worker Node.js)"
+  PHASE-2:
+    primary:
+      - "marketing-agent (qualquer clone ativo)"
+    secondary: []
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# QUALITY CHECKLIST
+# ═══════════════════════════════════════════════════════════════════════════════
+quality_checklist:
+  Fetch ClickUp CRIAÇÃO DOS VÍDEOS Task:
+    - "[ ] get-activities.js executado com sucesso"
+    - "[ ] ≥1 tarefa retornada no grupo 'criação dos vídeos'"
+    - "[ ] Tarefa selecionada possui description não vazia"
+    - "[ ] task_slug gerado e diretório de saída criado"
+
+  Generate Narrations:
+    - "[ ] Agente identificou textos de narração na descrição"
+    - "[ ] text-to-speech.js executado para cada parte"
+    - "[ ] Todos parteN.mp3 existem com size > 0"
+    - "[ ] Arquivos nomeados em sequência (parte1, parte2, ...)"
+
+  Document & Advance:
+    - "[ ] Devolutiva postada na tarefa ClickUp via append-description.js"
+    - "[ ] Checklist de assets verificada (MP4 + BGM + narração)"
+    - "[ ] Se tudo pronto: tarefa movida para EDIÇÃO"
+    - "[ ] Se falta algo: pendências documentadas, card não movido"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GOVERNANCE GATE
+# ═══════════════════════════════════════════════════════════════════════════════
+governance_gate:
+  protocol: "squads/squad-creator/protocols/ai-first-governance.md"
+  required_checks:
+    - "Existing -> Gap -> Decision mapped"
+    - "Canonical sources validated"
+    - "Contradictions documented"
+    - "Unresolved items explicit"
+
+  ci_policy:
+    blocking_deterministic_only: true
+    deterministic_checks:
+      - "syntax/schema"
+      - "broken references (scripts existem nos paths declarados)"
+      - "required files presence (get-activities.js, text-to-speech.js, append-description.js, move-next-stage.js)"
+      - "env vars (CLICKUP_API_KEY e ELEVENLABS_API_KEY presentes no .env)"
+    semantic_checks_enforced_in_workflow: true
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DEPENDENCIES
+# ═══════════════════════════════════════════════════════════════════════════════
+dependencies:
+  scripts:
+    - integrations/clickup/get-activities.js
+    - integrations/elevenlabs/text-to-speech.js
+    - integrations/clickup/append-description.js
+    - integrations/clickup/move-next-stage.js
+  tasks:
+    - squads/marketing-clones/tasks/generate-narration.md
+  env:
+    - CLICKUP_API_KEY
+    - ELEVENLABS_API_KEY
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# EXTENSIBILITY
+# ═══════════════════════════════════════════════════════════════════════════════
+extensibility:
+  description: |
+    V1 cobre apenas geração de narração. Fases futuras podem ser inseridas
+    entre PHASE-1 (Generate Narrations) e PHASE-2 (Document & Advance):
+
+    - PHASE-1.1: Geração de vídeo AI (prompts → MP4 por parte)
+    - PHASE-1.2: Montagem/Assembly (combinar MP3 + MP4)
+    - PHASE-1.3: Legendas automáticas (Whisper)
+
+    PHASE-2 permanece sempre como última fase (documentação + avanço condicional).
+    A condição de avanço para EDIÇÃO já verifica MP4 + BGM + narração,
+    então novas fases de geração de vídeo automaticamente habilitam o avanço.
+
+  future_phases:
+    - id: "PHASE-1.1"
+      name: "Generate Video Scenes"
+      description: "Gerar MP4 por parte via AI video generation"
+      status: planned
+    - id: "PHASE-1.2"
+      name: "Assembly"
+      description: "Combinar MP3 narração + MP4 cenas por parte"
+      status: planned
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# METADATA
+# ═══════════════════════════════════════════════════════════════════════════════
+metadata:
+  version: "1.0.0"
+  framework: "AIOX Marketing Clones Squad"
+  created: "2026-03-24"
+  story_id: "N/A — workflow criado diretamente"
+  primary_use_case: "Geração de narração TTS: CRIAÇÃO DOS VÍDEOS → ElevenLabs → MP3 → devolutiva ClickUp"
+  key_difference: |
+    Este workflow é agent-driven: o agente interpreta a descrição do card
+    usando raciocínio LLM, não depende de formato rígido no texto.
+    O avanço para EDIÇÃO é condicional — só ocorre quando TODOS os assets
+    (vídeo + BGM + narração) estão prontos, não apenas a narração.

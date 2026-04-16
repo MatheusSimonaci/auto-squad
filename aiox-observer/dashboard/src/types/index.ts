@@ -1,11 +1,11 @@
 export interface Card {
   id: string;
   name: string;
-  type: 'workflow' | 'mentor' | 'marketing';
+  type: 'workflow' | 'mentor' | 'marketing' | 'squad';
   cost: number;
   description: string;
   agents: string[];
-  deck: 'aiox' | 'mentors' | 'marketing';
+  deck: 'aiox' | 'mentors' | 'marketing' | 'squads';
   icon?: string;
   flavor?: string;
   stats?: { points: number; type: string };

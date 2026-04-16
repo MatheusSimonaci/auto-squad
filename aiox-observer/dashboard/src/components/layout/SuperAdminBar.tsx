@@ -14,7 +14,7 @@ export default function SuperAdminBar() {
         </div>
 
         <div className="flex items-center gap-6 text-sm">
-          <span>📜 Session #{session.id.slice(-4) || '0'}</span>
+          <span>📜 Session #{(session?.id ?? '').slice(-4) || '0'}</span>
           <span className="flex items-center gap-2">
             <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
             LIVE

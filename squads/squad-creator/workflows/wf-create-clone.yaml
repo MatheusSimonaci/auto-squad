@@ -1,0 +1,654 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# WORKFLOW: Create AI Clone
+# Version: 2.0.0
+# Purpose: Transformar um especialista real em um clone de IA operacional,
+#          seguindo a metodologia Clone IA Express (Clone Básico PREHD +
+#          Clone Profissional DNA de Resposta + Sistema T.E.S.T.E.).
+#
+# Metodologia fonte:
+#   Clone Básico:       Estrutura PREHD (Papel, Resposta, Especialidade, Histórico, Defesa)
+#   Clone Profissional: Frameworks 3 Camadas + DNA PENSAR-SENTIR-RESPONDER
+#   Calibração:         Sistema T.E.S.T.E. + Checklist 20 Pontos
+#
+# Model Routing (3-tier):
+#   Opus   → PHASE-2: planejamento estratégico de fontes
+#   Haiku  → PHASE-3: execução de scripts, download de transcripts
+#   Sonnet → PHASE-0, PHASE-1, PHASE-4, PHASE-5, PHASE-6: tudo mais
+# ═══════════════════════════════════════════════════════════════════════════════
+
+workflow:
+  id: wf-create-clone
+  name: "Create AI Clone"
+  version: "2.0.0"
+  status: active
+  orchestrator: "squad-chief"
+  command: "*create-clone"
+  duration: "90-240 minutes"
+
+  description: |
+    Pipeline completo para criação de clones de IA baseados em especialistas reais.
+
+    O workflow transforma material bruto (livros, PDFs, transcrições de YouTube, podcasts)
+    em um agente operacional com identidade consistente, frameworks documentados e
+    comportamento validado. Segue rigorosamente a metodologia Clone IA Express.
+
+    Model routing 3-tier (otimização de custo):
+    - PHASE-0: Material Discovery (pasta local + URLs YouTube) — Sonnet
+    - PHASE-1: Elicitação de inputs (fontes, domínio, objetivo) — Sonnet
+    - PHASE-2: Planejamento estratégico de fontes — OPUS (decisão de alto nível)
+    - PHASE-3: Aquisição e extração de fontes (scripts + downloads) — HAIKU
+    - PHASE-4: Síntese DNA completo (PREHD + Frameworks + PSR) — Sonnet
+    - PHASE-5: Assembly do arquivo final — Sonnet
+    - PHASE-6: Calibração T.E.S.T.E. + Checklist 20 Pontos — Sonnet
+
+  best_for:
+    - "Especialistas com publicações verificáveis (livros, podcast, artigos)"
+    - "Mentores, autores, empreendedores com conteúdo público documentado"
+    - "Clones para squads de marketing, mentorado estratégico, educação"
+    - "Qualquer domínio com fontes primárias verificáveis"
+
+  decision_matrix_fit:
+    trigger: "Usuário solicita *create-clone ou menciona criar agente baseado em pessoa real"
+    primary_output: "squads/{squad-name}/{slug}-agent.md aprovado por T.E.S.T.E."
+    automation_level: "agent-driven — todas as fases requerem raciocínio LLM"
+
+  not_suitable_for:
+    - "Personagens fictícios sem documentação real"
+    - "Especialistas sem nenhuma fonte pública verificável"
+    - "Workflows simples de processo (usar wf-create-squad.yaml)"
+
+trigger:
+  type: agent-invocation
+  condition: "squad-chief recebe *create-clone ou pedido de clone de especialista real"
+
+inputs:
+  required:
+    - person_name: "Nome completo da pessoa a clonar"
+    - domain: "Domínio/especialidade principal"
+    - squad_destination: "Squad onde o clone será criado (deve existir)"
+  optional:
+    - local_materials_path: "Caminho para pasta local com livros/PDFs/materiais"
+    - youtube_urls_provided: "URLs de vídeos YouTube do especialista"
+    - primary_sources: "Lista de livros/podcasts/entrevistas já identificados"
+    - clone_purpose: "Para qual objetivo específico o clone será usado"
+    - language: "Idioma das respostas do clone (default: pt-BR)"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 0: Material Discovery
+# ═══════════════════════════════════════════════════════════════════════════════
+phases:
+  - id: PHASE-0
+    name: "Material Discovery"
+    agent: "squad-chief"
+    model: sonnet
+    days: "0"
+    tier: 0
+    elicit: true
+    description: |
+      Antes de qualquer pergunta sobre o clone, verificar se o usuário tem
+      materiais locais (livros, PDFs, artigos) ou URLs de YouTube que podem
+      enriquecer a pesquisa. Estes materiais serão priorizados sobre qualquer
+      busca automática nas fases seguintes.
+
+    elicitation:
+      questions:
+        - id: local_materials_path
+          question: |
+            Você tem uma pasta local com livros, PDFs, artigos ou outros materiais
+            sobre a pessoa que quer clonar?
+            Se sim, informe o caminho completo da pasta. Se não, pode pular.
+          required: false
+        - id: youtube_urls_provided
+          question: |
+            Você tem URLs de vídeos do YouTube desta pessoa que gostaria de incluir?
+            (entrevistas, lives, talks, podcasts — cole um por linha)
+            Se não, pode pular.
+          required: false
+
+    actions:
+      on_local_path_provided:
+        - "Validar que o caminho existe (ls/dir)"
+        - "Catalogar arquivos com extensões: .pdf, .txt, .md, .epub, .docx"
+        - "Reportar: 'Encontrei {N} arquivos na pasta: {lista}'"
+        - "Armazenar como local_materials_manifest"
+      on_youtube_urls_provided:
+        - "Armazenar lista de URLs como youtube_urls_provided"
+        - "Confirmar recebimento: 'Recebi {N} URLs do YouTube para incluir'"
+      on_neither_provided:
+        - "Prosseguir normalmente — YouTube será buscado automaticamente na PHASE-2"
+
+    checkpoint:
+      criteria:
+        - "Pergunta sobre pasta local feita"
+        - "Pergunta sobre URLs YouTube feita"
+        - "local_materials_manifest gerado (ou confirmado vazio)"
+        - "youtube_urls_provided coletado (ou confirmado vazio)"
+      human_review: false
+      message: "CHECKPOINT:PHASE-0 — Material Discovery completo. Locais: {local_count} arquivos. YouTube fornecido: {yt_count} URLs. Avançando para elicitação."
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 1: Elicitação de Inputs
+# ═══════════════════════════════════════════════════════════════════════════════
+  - id: PHASE-1
+    name: "Elicitação de Inputs"
+    agent: "squad-chief"
+    model: sonnet
+    days: "0"
+    tier: 1
+    elicit: true
+    description: |
+      Coletar todas as informações necessárias antes de iniciar a pesquisa.
+      Verificar que o squad de destino existe e que há fontes suficientes
+      para criar um clone verificável.
+      (Materiais locais catalogados: {local_count} arquivos. URLs YouTube: {yt_count})
+
+    elicitation:
+      questions:
+        - id: person_name
+          question: "Qual é o nome completo da pessoa que você quer clonar?"
+          required: true
+        - id: domain
+          question: "Qual é o domínio/especialidade principal desta pessoa?"
+          required: true
+        - id: primary_sources
+          question: |
+            Quais fontes primárias você tem disponíveis?
+            (Ex: livros, podcasts, vídeos, entrevistas)
+            Materiais locais catalogados serão usados automaticamente.
+            Se não souber de outras fontes, vou pesquisar — mas fontes verificáveis melhoram muito a qualidade.
+          required: false
+        - id: squad_destination
+          question: "Em qual squad o clone vai ficar? (ex: strategic-mentors, marketing-clones)"
+          required: true
+        - id: clone_purpose
+          question: "Para qual objetivo principal este clone vai ser usado?"
+          required: false
+
+    validations:
+      - check: "squad {squad_destination} existe em squads/{squad_destination}/"
+        on_fail: "BLOQUEAR — squad de destino não encontrado. Criar o squad primeiro com *create-squad"
+      - check: "Pessoa tem fontes públicas verificáveis mínimas (≥2, incluindo locais e YouTube)"
+        on_fail: "ALERTAR — poucas fontes identificadas. O clone terá qualidade limitada. Prosseguir?"
+      - check: "Não existe {slug}-agent.md em squads/{squad_destination}/"
+        on_fail: "ALERTAR — clone já existe para esta pessoa neste squad. Sobrescrever ou cancelar?"
+
+    checkpoint:
+      criteria:
+        - "Nome completo confirmado"
+        - "Domínio definido"
+        - "Squad de destino existe"
+        - "Pelo menos 1 fonte primária identificada (ou pesquisa autorizada)"
+      human_review: true
+      message: "CHECKPOINT:PHASE-1 — Inputs coletados para {person_name}. Fontes: {sources_count}. Materiais locais: {local_count}. Squad destino: {squad_destination}. Avançar para planejamento de pesquisa?"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 2: Research Strategy & Source Planning
+# ═══════════════════════════════════════════════════════════════════════════════
+  - id: PHASE-2
+    name: "Research Strategy — Planejamento de Fontes"
+    agent: "squad-chief"
+    model: opus
+    days: "0"
+    tier: 2
+    description: |
+      Opus analisa todos os inputs disponíveis e cria um plano de extração
+      estruturado. Decide O QUE extrair, DE ONDE e em que ORDEM.
+      Saída: squads/{squad_destination}/.clones/{slug}/research-plan.yaml que guia a PHASE-3 (Haiku).
+
+      Prioridade de conteúdo YouTube obrigatória:
+      1. Entrevistas > 2. Lives > 3. Palestras > 4. Vídeos gerais
+
+    tasks:
+      - task_file: squads/squad-creator/tasks/clone-research-plan.md
+        agent: squad-chief
+        model: opus
+        required: true
+        description: "Criar plano de extração estruturado com queries YouTube, triagem de materiais locais e mapeamento fonte→PREHD/DNA"
+        output: "squads/{squad_destination}/.clones/{slug}/research-plan.yaml"
+
+    youtube_priority_rules:
+      P1_interviews:
+        queries: ["{name} interview", "{name} entrevista", "{name} podcast", "{name} conversa"]
+        min_duration_sec: 600
+        max_results: 5
+        value: "Respostas autênticas — vocabulário real, padrões cognitivos, gatilhos emocionais"
+      P2_lives:
+        queries: ["{name} live", "{name} ao vivo", "{name} stream"]
+        min_duration_sec: 1800
+        max_results: 3
+        value: "Conteúdo não-roteirizado — tomada de decisão em tempo real"
+      P3_talks:
+        queries: ["{name} palestra", "{name} talk", "{name} keynote", "{name} apresentacao"]
+        min_duration_sec: 900
+        max_results: 3
+        value: "Estrutura de resposta — arquitetura e fórmula signature"
+      P4_general:
+        queries: ["{name} {domain}"]
+        min_duration_sec: 300
+        max_results: 2
+        value: "Vocabulário e evidência complementar"
+
+    checkpoint:
+      criteria:
+        - "squads/{squad_destination}/.clones/{slug}/research-plan.yaml gerado"
+        - "Mínimo 3 tipos de fonte distintos planejados"
+        - "Mínimo 5 alvos YouTube com queries definidas"
+        - "Todos os componentes PREHD/DNA têm fonte mapeada"
+        - "Materiais locais priorizados acima das fontes YouTube"
+      human_review: false
+      message: "CHECKPOINT:PHASE-2 — Plano de pesquisa completo. {N} fontes planejadas ({yt_count} YouTube, {local_count} locais). Avançando para extração."
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 3: Source Acquisition & Extraction
+# ═══════════════════════════════════════════════════════════════════════════════
+  - id: PHASE-3
+    name: "Source Acquisition — Extração de Fontes"
+    agent: "squad-chief"
+    model: haiku
+    days: "0"
+    tier: 3
+    description: |
+      Haiku executa o plano de pesquisa mecanicamente: baixa transcripts do YouTube,
+      lê arquivos locais, e produz texto bruto em squads/{squad_destination}/.clones/{slug}/raw-sources/.
+      NÃO sintetiza nem analisa. Apenas extrai e salva arquivos.
+
+    tasks:
+      - task_file: squads/squad-creator/tasks/clone-source-extract.md
+        agent: squad-chief
+        model: haiku
+        required: true
+        description: "Executar scripts de extração: download de transcripts YouTube (yt-dlp), leitura de PDFs/TXT locais, geração do manifesto de fontes"
+        output: "squads/{squad_destination}/.clones/{slug}/raw-sources/*.txt + squads/{squad_destination}/.clones/{slug}/source-manifest.yaml"
+
+    extraction_rules:
+      order: "Materiais locais PRIMEIRO, depois YouTube por prioridade (P1→P2→P3→P4)"
+      youtube_tool: "yt-dlp com fallback: manual subs → auto subs → skip (sem Whisper automático)"
+      threshold: "Parar quando ≥50.000 palavras extraídas"
+      on_failure: "Registrar no manifesto, nunca bloquear pipeline"
+
+    checkpoint:
+      criteria:
+        - "squads/{squad_destination}/.clones/{slug}/source-manifest.yaml gerado"
+        - "Pelo menos 1 arquivo em squads/{squad_destination}/.clones/{slug}/raw-sources/ com conteúdo"
+        - "Materiais locais processados antes do YouTube"
+        - "Falhas documentadas no manifesto"
+      human_review: false
+      message: "CHECKPOINT:PHASE-3 — Extração completa. {total_sources} fontes extraídas, {total_words} palavras. Falhas: {failed_count}. Avançando para síntese."
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 4: Deep Analysis & Synthesis (PREHD + Frameworks + PSR)
+# ═══════════════════════════════════════════════════════════════════════════════
+  - id: PHASE-4
+    name: "DNA Completo — Síntese PREHD + Frameworks + PSR"
+    agent: "squad-chief"
+    model: sonnet
+    days: "0"
+    tier: 4
+    description: |
+      Sonnet sintetiza o DNA completo do especialista a partir das fontes extraídas.
+      Trabalha sobre texto concreto (squads/{squad_destination}/.clones/{slug}/raw-sources/*.txt) — não usa conhecimento geral.
+      Executa em sequência: PREHD → Frameworks Cognitivos (3 Camadas) → DNA de Resposta.
+
+    tasks:
+      - task_file: squads/squad-creator/tasks/clone-research.md
+        section: "FASE 1 — Extração PREHD"
+        agent: squad-chief
+        model: sonnet
+        required: true
+        description: "Sintetizar 5 componentes PREHD a partir de squads/{squad_destination}/.clones/{slug}/raw-sources/ guiado por research-plan.yaml"
+        output: "squads/{squad_destination}/.clones/{slug}/prehd.md"
+      - task_file: squads/squad-creator/tasks/clone-research.md
+        section: "FASE 2 — Extração de Frameworks Cognitivos"
+        agent: squad-chief
+        model: sonnet
+        required: true
+        description: "Protocolo forense 5 passos para extrair 3 camadas de frameworks das fontes brutas"
+        output: "squads/{squad_destination}/.clones/{slug}/frameworks.md"
+      - task_file: squads/squad-creator/tasks/clone-research.md
+        section: "FASE 3 — DNA de Resposta"
+        agent: squad-chief
+        model: sonnet
+        required: true
+        description: "Identificar PENSAR-SENTIR-RESPONDER + fórmula signature a partir das fontes brutas"
+        output: "squads/{squad_destination}/.clones/{slug}/response-dna.md"
+
+    prehd_components:
+      P:
+        name: "Papel"
+        description: "Quem a pessoa é, em suas próprias palavras, com linguagem característica"
+        quality_gate: "Deve usar a própria voz do especialista, não descrição de terceiros"
+      R:
+        name: "Resposta/Estilo"
+        description: "Writing fingerprint: léxico, sintaxe, ritmo, idiossincrasias"
+        quality_gate: "≥7 termos documentados com exemplos reais de uso, citando arquivo fonte"
+      E:
+        name: "Especialidade"
+        description: "Habilidades e domínios com evidência documentada"
+        quality_gate: "Cada habilidade declarada tem evidência específica de .clones/{slug}/raw-sources/"
+      H:
+        name: "Histórico/Dados"
+        description: "Base de conhecimento: livros, transcrições, entrevistas verificáveis"
+        quality_gate: "Tabela de fontes com título + tipo + arquivo em .clones/{slug}/raw-sources/"
+      D:
+        name: "Defesa"
+        description: "Bloco <security> anti-jailbreak + anti-padrões comportamentais"
+        quality_gate: "Bloco <security> personalizado (não genérico)"
+
+    forensic_protocol:
+      step_1: "Coletar ≥5 decisões documentadas com contexto e justificativa"
+      step_2: "Identificar padrões que aparecem em ≥3 fontes diferentes"
+      step_3: "Mapear sequência exata de cada framework (trigger → passos → output)"
+      step_4: "Extrair critérios ocultos (o que realmente drive a decisão)"
+      step_5: "Documentar em linguagem natural operacional"
+
+    quality_requirements:
+      camada_1:
+        min_frameworks: 3
+        max_frameworks: 4
+        required_per_framework:
+          - "trigger: quando ativa"
+          - "processo: passos com verbos de ação"
+          - "output_esperado: frase que o clone diz ao aplicar"
+          - "fonte: arquivo em .clones/{slug}/raw-sources/"
+      camada_2:
+        min_entries: 3
+        format: "tabela situação → framework → sinal de ativação"
+      camada_3:
+        min_principles: 2
+        required: "fonte verificável (arquivo .clones/{slug}/raw-sources/) para cada princípio"
+
+    checkpoint:
+      criteria:
+        - "5 componentes PREHD documentados com citação de arquivo fonte"
+        - "Cada afirmação tem fonte verificável (não conhecimento geral)"
+        - "Vocabulário com ≥7 termos e exemplos reais com fonte"
+        - "≥3 frameworks Camada 1 (trigger + processo + output + fonte)"
+        - "≥3 frameworks Camada 2 (situacionais)"
+        - "≥2 meta-frameworks Camada 3 com fontes"
+        - "Tipo cognitivo identificado com evidência dos arquivos"
+        - "≥3 gatilhos emocionais documentados com fonte"
+        - "Fórmula signature de 4 passos validada com 3 perguntas"
+        - "Zero [INFERIDO] sem sinalização"
+      human_review: false
+      message: "CHECKPOINT:PHASE-4 — DNA completo para {person_name}. Vocabulário: {vocab_count} termos. Frameworks: {c1}/{c2}/{c3}. Tipo cognitivo: {cognitive_type}. Avançando para assembly."
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 5: Assembly do Agente
+# ═══════════════════════════════════════════════════════════════════════════════
+  - id: PHASE-5
+    name: "Assembly do Arquivo Final"
+    agent: "squad-chief"
+    model: sonnet
+    days: "0"
+    tier: 5
+    description: |
+      Montar o arquivo final do clone integrando todos os artefatos de pesquisa
+      no template padrão. OBRIGATÓRIO: carregar o template antes de escrever.
+      Resultado: arquivo {slug}-agent.md em squads/{squad_destination}/
+
+    tasks:
+      - task_file: squads/squad-creator/tasks/clone-assemble.md
+        agent: squad-chief
+        model: sonnet
+        required: true
+        description: "Montar arquivo final do clone usando template + artefatos de pesquisa + manifesto de fontes"
+        output: "squads/{squad_destination}/{slug}-agent.md"
+        notes: |
+          REGRA TEMPLATE-FIRST: Ler clone-agent-tmpl.md ANTES de escrever.
+          VETO se qualquer {{variável}} ficar sem preencher.
+          VETO se arquivo criado fora de squads/{squad_destination}/
+          Usar squads/{squad_destination}/.clones/{slug}/source-manifest.yaml para tabela de fontes verificadas (H).
+
+    assembly_rules:
+      - "Carregar squads/squad-creator/templates/clone-agent-tmpl.md PRIMEIRO"
+      - "Mapear todas as variáveis antes de escrever"
+      - "Incluir bloco <security> personalizado (não genérico)"
+      - "Exemplo de resposta deve ativar ≥2 frameworks da Camada 1"
+      - "Arquivo final: ≥300 linhas"
+
+    checkpoint:
+      criteria:
+        - "Template foi carregado antes de escrever"
+        - "Todas as seções do template presentes"
+        - "Zero {{variáveis}} não substituídas"
+        - "Bloco <security> presente e personalizado"
+        - "YAML de ativação completo"
+        - "Exemplo de resposta demonstra múltiplos frameworks"
+        - "Arquivo em squads/{squad_destination}/{slug}-agent.md"
+        - "≥300 linhas"
+      human_review: true
+      message: "CHECKPOINT:PHASE-5 — Clone {slug}-agent.md criado em squads/{squad_destination}/. {line_count} linhas. Revisar antes de calibrar?"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 6: Calibração T.E.S.T.E.
+# ═══════════════════════════════════════════════════════════════════════════════
+  - id: PHASE-6
+    name: "Calibração T.E.S.T.E."
+    agent: "squad-chief"
+    model: sonnet
+    days: "0"
+    tier: 6
+    description: |
+      Validar o clone com o sistema T.E.S.T.E. (5 testes) + Checklist 20 Pontos.
+      Classificar e decidir se o clone está pronto para produção.
+
+      T — Teste de Tom (5 perguntas simples, avaliar autenticidade)
+      E — Teste de Expertise (1 pergunta técnica complexa)
+      S — Teste Situacional (1 pergunta × 3 perfis)
+      T — Teste de Triggers (1 pergunta por framework Camada 1)
+      E — Teste de Extremos (fora do domínio, identidade, contradição)
+
+    tasks:
+      - task_file: squads/squad-creator/tasks/clone-calibrate.md
+        agent: squad-chief
+        model: sonnet
+        required: true
+        description: "Executar 5 testes T.E.S.T.E. + Checklist 20 Pontos + classificação"
+        output: "squads/{squad_destination}/.clones/{slug}/calibration-report.md"
+
+    classification_table:
+      LENDARIO: {score: "20/20", action: "Produção imediata"}
+      PRO: {score: "17-19/20", action: "Produção com observação"}
+      BOM: {score: "14-16/20", action: "Produção — monitorar"}
+      BASICO: {score: "10-13/20", action: "Ajustes antes da produção"}
+      REFAZER: {score: "<10/20", action: "Retornar ao PHASE-4"}
+
+    decision_tree:
+      score_gte_14:
+        action: "APROVAR"
+        next: "Atualizar status do agente para Production. Workflow completo."
+      score_10_to_13:
+        action: "CONDICIONAL"
+        next: "Listar melhorias. Retornar ao clone-assemble.md. Novo teste T.E.S.T.E."
+      score_lt_10:
+        action: "REPROVAR"
+        next: "Retornar ao PHASE-4. Base de pesquisa insuficiente."
+
+    checkpoint:
+      criteria:
+        - "5 testes T.E.S.T.E. executados"
+        - "Checklist 20 pontos completado"
+        - "Score total calculado"
+        - "Classificação atribuída"
+        - "squads/{squad_destination}/.clones/{slug}/calibration-report.md gerado"
+        - "Decisão (APROVAR/CONDICIONAL/REPROVAR) documentada"
+      human_review: false
+      message: "COMPLETE — Clone {slug} classificado como {classification} ({score}/20). Status: {APPROVED|CONDITIONAL|REJECTED}."
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMPLETION SIGNALS
+# ═══════════════════════════════════════════════════════════════════════════════
+completion_signal: "<promise>COMPLETE</promise>"
+checkpoint_signal: "<promise>CHECKPOINT:PHASE-{N}</promise>"
+blocked_signal: "<promise>BLOCKED:WF-CC-{CODE}</promise>"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ERROR HANDLING
+# ═══════════════════════════════════════════════════════════════════════════════
+error_handling:
+  on_phase_failure:
+    - log_error: true
+    - halt_workflow: true
+    - notify_user: true
+
+  phase_specific:
+    PHASE-0:
+      path_not_found: "ALERTAR — pasta informada não existe. Verificar caminho ou pular"
+      invalid_youtube_url: "ALERTAR — URL inválida, registrar e continuar"
+    PHASE-1:
+      squad_not_found: "BLOQUEAR — criar o squad de destino primeiro com *create-squad"
+      clone_already_exists: "PERGUNTAR — sobrescrever, versionar ou cancelar?"
+      no_sources: "ALERTAR — qualidade limitada. Autorizar pesquisa ou fornecer fontes"
+    PHASE-2:
+      plan_incomplete: "BLOQUEAR — plano deve ter ≥3 tipos de fonte e ≥5 alvos YouTube"
+    PHASE-3:
+      ytdlp_not_available: "ALERTAR — yt-dlp não instalado. Continuar apenas com materiais locais"
+      no_sources_extracted: "BLOQUEAR — nenhuma fonte extraída. Verificar materiais e tentar novamente"
+      partial_extraction: "ALERTAR — algumas fontes falharam. Documentar no manifesto e continuar"
+    PHASE-4:
+      insufficient_sources: "ALERTAR — documentar o que é [INFERIDO] e prosseguir com aviso"
+      invented_content_detected: "VETO — reformular sem inventar dados"
+      no_pattern_found: "ALERTAR — padrão observado em <3 fontes, marcar como [FRACO]"
+      framework_invented: "VETO — framework deve ter evidência documentada"
+      formula_test_failed: "REPETIR — testar com 3 novas perguntas antes de avançar"
+    PHASE-5:
+      template_not_loaded: "VETO — carregar template antes de escrever qualquer linha"
+      unfilled_variables: "VETO — substituir todos os {{variáveis}} antes de salvar"
+      file_outside_squad: "VETO — arquivo deve estar em squads/{squad_destination}/"
+    PHASE-6:
+      score_lt_14: "CONDICIONAL — listar melhorias e retornar ao assembly ou pesquisa"
+      score_lt_10: "REPROVAR — retornar ao PHASE-4 com análise do que faltou"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# OUTPUT ARTIFACTS
+# ═══════════════════════════════════════════════════════════════════════════════
+outputs:
+  primary:
+    - "squads/{squad_destination}/{slug}-agent.md — arquivo do clone aprovado (único artefato no topo do squad)"
+    - "squads/{squad_destination}/.clones/{slug}/calibration-report.md — relatório de calibração"
+  clone_workspace:
+    # Tudo relacionado à construção do clone vive em squads/{squad_destination}/.clones/{slug}/
+    # Isso mantém o topo do squad limpo (só agentes) e isola por clone.
+    - "squads/{squad_destination}/.clones/{slug}/research-plan.yaml — plano de extração (Opus, PHASE-2)"
+    - "squads/{squad_destination}/.clones/{slug}/raw-sources/*.txt — texto bruto extraído (Haiku, PHASE-3)"
+    - "squads/{squad_destination}/.clones/{slug}/source-manifest.yaml — inventário de fontes extraídas (Haiku, PHASE-3)"
+    - "squads/{squad_destination}/.clones/{slug}/prehd.md — PREHD completo com fontes"
+    - "squads/{squad_destination}/.clones/{slug}/frameworks.md — 3 camadas de frameworks"
+    - "squads/{squad_destination}/.clones/{slug}/response-dna.md — PENSAR-SENTIR-RESPONDER"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# QUALITY CHECKLIST
+# ═══════════════════════════════════════════════════════════════════════════════
+quality_checklist:
+  Phase 0 - Material Discovery:
+    - "[ ] Pergunta sobre pasta local feita"
+    - "[ ] Pergunta sobre URLs YouTube feita"
+    - "[ ] Materiais catalogados (ou confirmado vazio)"
+
+  Phase 1 - Inputs:
+    - "[ ] Nome, domínio e squad de destino coletados"
+    - "[ ] Squad de destino existe"
+    - "[ ] Fontes primárias identificadas (ou pesquisa autorizada)"
+    - "[ ] Clone não existe ainda no squad destino"
+
+  Phase 2 - Research Plan:
+    - "[ ] squads/{squad_destination}/.clones/{slug}/research-plan.yaml gerado"
+    - "[ ] ≥3 tipos de fonte distintos planejados"
+    - "[ ] ≥5 alvos YouTube com prioridade correta (entrevistas primeiro)"
+    - "[ ] Todos os componentes PREHD/DNA têm fonte mapeada"
+
+  Phase 3 - Source Extraction:
+    - "[ ] squads/{squad_destination}/.clones/{slug}/source-manifest.yaml gerado"
+    - "[ ] Materiais locais processados primeiro"
+    - "[ ] YouTube processado em ordem de prioridade"
+    - "[ ] Falhas documentadas no manifesto"
+
+  Phase 4 - DNA Synthesis:
+    - "[ ] 5 componentes PREHD documentados com citação de arquivo fonte"
+    - "[ ] ≥7 termos no vocabulário com exemplos reais"
+    - "[ ] Protocolo forense 5 passos aplicado"
+    - "[ ] ≥3 frameworks Camada 1 (trigger+processo+output+fonte)"
+    - "[ ] ≥3 entradas Camada 2 (tabela situacional)"
+    - "[ ] ≥2 meta-frameworks Camada 3 com fontes"
+    - "[ ] Tipo cognitivo identificado com evidência"
+    - "[ ] ≥3 gatilhos emocionais documentados"
+    - "[ ] Modulação contextual (3 perfis) definida"
+    - "[ ] Fórmula signature validada com 3 perguntas"
+
+  Phase 5 - Assembly:
+    - "[ ] Template carregado antes de escrever"
+    - "[ ] Zero {{variáveis}} não substituídas"
+    - "[ ] Arquivo em squads/{squad_destination}/"
+    - "[ ] ≥300 linhas"
+
+  Phase 6 - T.E.S.T.E.:
+    - "[ ] 5 testes executados"
+    - "[ ] Checklist 20 pontos completado"
+    - "[ ] Score ≥14/20 para aprovação"
+    - "[ ] squads/{squad_destination}/.clones/{slug}/calibration-report.md gerado"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GOVERNANCE GATE
+# ═══════════════════════════════════════════════════════════════════════════════
+governance_gate:
+  protocol: "squads/squad-creator/protocols/ai-first-governance.md"
+  required_checks:
+    - "Todas as afirmações têm fonte verificável em squads/{squad_destination}/.clones/{slug}/raw-sources/ (no_invention rule)"
+    - "Template foi carregado antes do assembly (template_first rule)"
+    - "Clone classificado como BOM ou superior (score ≥14/20)"
+    - "Arquivo no squad de destino correto"
+
+  veto_conditions:
+    - "Escrever clone sem carregar template → VETO IMEDIATO"
+    - "Inventar framework sem evidência documentada → VETO IMEDIATO"
+    - "Criar arquivo fora de squads/{squad_destination}/ → VETO IMEDIATO"
+    - "Declarar clone 'pronto' com score <14/20 → VETO IMEDIATO"
+    - "Sintetizar PREHD/Frameworks/PSR sem ler .clones/{slug}/raw-sources/ → VETO IMEDIATO"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DEPENDENCIES
+# ═══════════════════════════════════════════════════════════════════════════════
+dependencies:
+  tasks:
+    - squads/squad-creator/tasks/clone-research-plan.md
+    - squads/squad-creator/tasks/clone-source-extract.md
+    - squads/squad-creator/tasks/clone-research.md
+    - squads/squad-creator/tasks/clone-assemble.md
+    - squads/squad-creator/tasks/clone-calibrate.md
+  templates:
+    - squads/squad-creator/templates/clone-agent-tmpl.md
+  skills:
+    - "C:\\Users\\Pichau\\Downloads\\AI\\Obsidian\\skills\\skills\\youtube-transcript-downloader\\SKILL.md"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AGENTS BY PHASE
+# ═══════════════════════════════════════════════════════════════════════════════
+agents_by_phase:
+  PHASE-0:
+    primary: ["squad-chief"]
+    model: sonnet
+    note: "Elicitação simples — Sonnet suficiente"
+  PHASE-1:
+    primary: ["squad-chief"]
+    model: sonnet
+    note: "Elicitação de inputs — Sonnet suficiente"
+  PHASE-2:
+    primary: ["squad-chief"]
+    model: opus
+    note: "Planejamento estratégico de fontes — Opus para julgamento de alto nível"
+  PHASE-3:
+    primary: ["squad-chief"]
+    model: haiku
+    note: "Execução de scripts e download de transcripts — Haiku suficiente para trabalho mecânico"
+  PHASE-4:
+    primary: ["squad-chief"]
+    model: sonnet
+    note: "Síntese sobre fontes concretas pré-extraídas — Sonnet suficiente"
+  PHASE-5:
+    primary: ["squad-chief"]
+    model: sonnet
+    note: "Assembly estruturado — Sonnet suficiente"
+  PHASE-6:
+    primary: ["squad-chief"]
+    model: sonnet
+    note: "Testes padronizados e scoring — Sonnet suficiente"

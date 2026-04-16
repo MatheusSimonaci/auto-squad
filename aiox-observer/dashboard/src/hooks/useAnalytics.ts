@@ -19,6 +19,7 @@ export function useAnalytics() {
     return Object.entries(buckets)
       .map(([bucket, counts]) => ({
         time: new Date(parseInt(bucket)).toLocaleTimeString(),
+        total: Object.values(counts).reduce((s, n) => s + n, 0),
         ...counts,
       }))
       .sort((a, b) => a.time.localeCompare(b.time))

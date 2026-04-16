@@ -1,0 +1,373 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# WF-VE-01: TikTok Video Editor
+# Duration: 5-15 minutes
+# Best for: Edição automatizada de vídeos TikTok com legendas + BGM
+# Key Agents: marketing-agent (qualquer clone ativo)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+workflow:
+  id: wf-video-editing
+  name: "TikTok Video Editor"
+  version: "1.0.0"
+  status: active
+  orchestrator: "marketing-agent"
+  duration: "5-15 minutes"
+  description: |
+    Pipeline de edição automatizada de vídeo TikTok.
+    Acionado quando um agente de marketing recebe os assets prontos (MP4 + MP3)
+    e os parâmetros de edição (partes sem legenda, música de fundo).
+
+    Este workflow produz:
+    - final.mp4 com narrações, legendas automáticas (Whisper) e trilha sonora
+    - Documentação do resultado na tarefa ClickUp
+    - Avanço automático da tarefa de EDIÇÃO → PUBLICAÇÃO
+
+  best_for:
+    - "Assets MP4 + MP3 prontos e tarefa no grupo EDIÇÃO do ClickUp"
+    - "Vídeos TikTok de 4 cenas com narração + BGM"
+    - "Canais: biblia-em-imagens (ativo), tiktok-shop, informante-ai (pending)"
+
+  decision_matrix_fit:
+    trigger: "Tarefa em EDIÇÃO no ClickUp com assets completos"
+    primary_output: "final.mp4 editado e publicado no ClickUp"
+    automation_level: "full — zero interação humana necessária"
+
+  clone_combinations:
+    primary: "marketing-agent (qualquer clone ativo)"
+    secondary:
+      - "N/A — workflow totalmente automatizado via scripts"
+
+trigger:
+  type: agent-invocation
+  condition: "Agente de marketing recebe parâmetros de edição de vídeo"
+  required_params:
+    - assets_dir    # Pasta com parteN.mp4 e parteN.mp3
+    - no_subtitle   # Lista de partes sem legenda (pode ser vazia)
+    - bgm_path      # Caminho da música de fundo
+
+inputs:
+  required:
+    - assets_dir: "Caminho absoluto da pasta com os assets (mp4 + mp3)"
+    - bgm_path: "Caminho absoluto do arquivo de música de fundo (MP3)"
+  optional:
+    - parts: "Lista de partes em ordem [padrão: parte1 parte2 parte3 parte4]"
+    - no_subtitle: "Partes sem legenda [padrão: vazio — todas recebem legenda]"
+    - output_path: "Caminho do vídeo final [padrão: <assets_dir>/final.mp4]"
+    - list_id_override: "Override do ClickUp list ID (ignora channel_profiles)"
+
+channel_profiles:
+  biblia-em-imagens:
+    status: active
+    clickup_list_id: "901326517287"
+    clickup_group_edicao: "edição"
+    clickup_group_publicacao: "publicação"
+    language: pt-BR
+    default_parts: [parte1, parte2, parte3, parte4]
+
+  tiktok-shop:
+    status: pending_configuration
+    clickup_list_id: "901326229706"
+    clickup_group_edicao: "edição"
+    clickup_group_publicacao: "publicação"
+
+  informante-ai:
+    status: pending_configuration
+    clickup_list_id: "901326318049"
+    clickup_group_edicao: "edição"
+    clickup_group_publicacao: "publicação"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 0: Fetch ClickUp EDIÇÃO Task (Days 0)
+# ═══════════════════════════════════════════════════════════════════════════════
+phases:
+  - id: PHASE-0
+    name: "Fetch ClickUp EDIÇÃO Task"
+    agent: "marketing-agent"
+    days: "0"
+    tier: 0
+    description: |
+      Busca a última tarefa no grupo EDIÇÃO do ClickUp para o canal ativo.
+      A descrição do card já contém TODOS os parâmetros de edição — não é necessário
+      receber nada do usuário. Extrair obrigatoriamente:
+        - assets_dir    (linha "vídeos das 4 cenas: ... da pasta: <PATH>")
+        - no_subtitle   (linha "parte sem legenda: <PARTE>")
+        - bgm_path      (linha "música de fundo: <PATH>")
+        - narration_texts (coluna "Narração (TTS + overlay)" da tabela de script,
+                          mapeada como {"parte1": "...", "parte2": "...", ...})
+      Aborta o workflow se nenhuma tarefa for encontrada.
+
+    tasks:
+      - task_file: integrations/clickup/get-last-edicao-task.js
+        agent: marketing-agent
+        required: true
+        description: "Buscar última tarefa EDIÇÃO via ClickUp API e retornar JSON"
+        output: "{ task_id, task_name, task_slug, task_url, status, assets_dir, no_subtitle, bgm_path, narration_texts }"
+        notes: |
+          Executar com flag --json para saída programática.
+          Uso: node integrations/clickup/get-last-edicao-task.js <LIST_ID> --json
+          Após obter o JSON, parsear o campo `description` para extrair:
+            assets_dir       → linha "vídeos das 4 cenas: ... da pasta: <PATH>"
+            no_subtitle      → linha "parte sem legenda: <PARTE>"
+            bgm_path         → linha "música de fundo: <PATH>"
+            narration_texts  → tabela de script, coluna "Narração (TTS + overlay)",
+                               mapeada como JSON {"parte1": "texto", "parte2": "texto", ...}
+          Todas essas informações já estão no card — não perguntar ao usuário.
+
+    checkpoint:
+      criteria:
+        - "Script retorna JSON válido com task_id não-vazio"
+        - "Campo status confirma que tarefa está em 'edição'"
+        - "task_slug pode ser mapeado para pasta em output/"
+        - "assets_dir extraído e pasta existe no sistema de arquivos"
+        - "bgm_path extraído e arquivo existe"
+        - "narration_texts extraído com ao menos uma entrada"
+      human_review: false
+      message: "CHECKPOINT:PHASE-0 — task_id obtido: {task_id}. Avançando para edição."
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 1: Video Editing (Days 0)
+# ═══════════════════════════════════════════════════════════════════════════════
+  - id: PHASE-1
+    name: "Video Editing"
+    agent: "marketing-agent"
+    days: "0"
+    tier: 1
+    description: |
+      Executa o pipeline completo de edição via edit-video.py:
+        A) Combina narração MP3 com cada cena MP4 (ffmpeg)
+        B) Gera SRT a partir do texto de narração do card (sem Whisper)
+           e grava legenda no vídeo (somente partes não listadas em no_subtitle)
+        C) Concatena as 4 partes na ordem definida (ffmpeg concat)
+        D) Mixa trilha sonora de fundo a 20% de volume (amix)
+      Todos os parâmetros (assets_dir, no_subtitle, bgm_path, narration_texts)
+      vêm do card ClickUp extraído na PHASE-0.
+
+    tasks:
+      - task_file: squads/marketing-clones/tasks/execute-video-editing.md
+        agent: marketing-agent
+        required: true
+        description: "Executar pipeline completo: narração + legendas + concat + BGM"
+        output: "<assets_dir>/final.mp4"
+        notes: |
+          Parâmetros obrigatórios: --assets-dir, --bgm, --output
+          Parâmetros obrigatórios para legendas: --narration-texts (JSON extraído do card)
+          Parâmetros opcionais: --parts, --no-subtitle, --bgm-volume
+          Saída JSON: { success, output_path, duration_seconds, parts_with_subtitles, ... }
+          Exemplo:
+            python integrations/video-editor/edit-video.py \
+              --assets-dir "<ASSETS_DIR>" --parts parte1 parte2 parte3 parte4 \
+              --no-subtitle parte3 --bgm "<BGM_PATH>" --output "<OUTPUT_PATH>" \
+              --narration-texts '{"parte1":"<TEXT1>","parte2":"<TEXT2>","parte4":"<TEXT4>"}' \
+              --json
+
+    checkpoint:
+      criteria:
+        - "final.mp4 existe no output_path retornado"
+        - "Duração do vídeo final >= 15 segundos"
+        - "JSON de saída contém success: true"
+        - "Partes em no_subtitle não possuem legenda; demais possuem"
+        - "Trilha sonora audível no vídeo final"
+      human_review: false
+      message: "CHECKPOINT:PHASE-1 — final.mp4 gerado em {output_path} ({duration}s). Avançando para documentação."
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PHASE 2: Document & Advance (Days 0)
+# ═══════════════════════════════════════════════════════════════════════════════
+  - id: PHASE-2
+    name: "Document & Advance"
+    agent: "marketing-agent"
+    days: "0"
+    tier: 2
+    description: |
+      Documenta o resultado da edição na tarefa ClickUp e
+      avança o status de EDIÇÃO para PUBLICAÇÃO.
+      Executado apenas se PHASE-1 retornou success: true.
+
+    tasks:
+      - task_file: integrations/clickup/append-description.js
+        agent: marketing-agent
+        required: true
+        description: "Anexar resultado da edição (status, path, duração) à tarefa ClickUp"
+        output: "Tarefa ClickUp atualizada com bloco '## Resultado da Edição'"
+        notes: |
+          Formato do resultado:
+          ## Resultado da Edição
+          - Status: ✅ Concluído / ❌ Falha
+          - Vídeo final: `<output_path>`
+          - Duração: <duration>s
+          - Partes com legenda: <list>
+          - Data: <timestamp>
+
+      - task_file: integrations/clickup/move-next-stage.js
+        agent: marketing-agent
+        required: true
+        description: "Mover tarefa de EDIÇÃO para PUBLICAÇÃO"
+        output: "Tarefa no status PUBLICAÇÃO"
+        notes: |
+          Só executar se PHASE-1 success == true.
+          Se falhou, documentar o erro mas NÃO mover a tarefa.
+
+    checkpoint:
+      criteria:
+        - "append-description.js sai com código 0"
+        - "move-next-stage.js confirma status = PUBLICAÇÃO na saída"
+        - "URL do vídeo final documentada na tarefa ClickUp"
+      human_review: false
+      message: "COMPLETE — Tarefa {task_id} movida para PUBLICAÇÃO. Vídeo disponível em: {output_path}"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# COMPLETION SIGNALS
+# ═══════════════════════════════════════════════════════════════════════════════
+completion_signal: "<promise>COMPLETE</promise>"
+checkpoint_signal: "<promise>CHECKPOINT:PHASE-{N}</promise>"
+blocked_signal: "<promise>BLOCKED:WF-VE-01</promise>"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ERROR HANDLING
+# ═══════════════════════════════════════════════════════════════════════════════
+error_handling:
+  on_phase_failure:
+    - log_error: true
+    - notify_stakeholders: false
+    - create_remediation_task: false
+    - halt_workflow: true
+
+  on_checkpoint_failure:
+    - log_failure_reason: true
+    - return_to_previous_phase: false
+    - max_retries: 1
+
+  phase_specific:
+    PHASE-0:
+      no_tasks_found: "Parar workflow — nenhuma tarefa em EDIÇÃO no ClickUp"
+      api_error: "Verificar CLICKUP_API_KEY no .env e tentar novamente"
+    PHASE-1:
+      ffmpeg_not_found: "Instruir instalação: https://ffmpeg.org/download.html"
+      narration_texts_invalid: "Verificar parsing da tabela de script do card ClickUp"
+      missing_assets: "MP3 ou MP4 ausentes — verificar se TTS e geração de vídeo foram executados"
+    PHASE-2:
+      document_failure: "Registrar erro manualmente na tarefa ClickUp"
+      move_failure: "Mover tarefa manualmente no ClickUp para PUBLICAÇÃO"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CHECKPOINT CONFIGURATION
+# ═══════════════════════════════════════════════════════════════════════════════
+checkpoint_config:
+  - phase: PHASE-0
+    heuristic: "QG-VE-001"
+    criteria: "task_id não-vazio + status == edição"
+    veto_condition: "Nenhuma tarefa retornada ou task_id vazio → ABORTAR"
+
+  - phase: PHASE-1
+    heuristic: "QG-VE-003"
+    criteria: "final.mp4 existe + duração >= 15s + success: true"
+    veto_condition: "success: false ou arquivo ausente → ABORTAR e documentar erro"
+
+  - phase: PHASE-2
+    heuristic: "QG-VE-006"
+    criteria: "append-description exit 0 + tarefa em PUBLICAÇÃO"
+    veto_condition: "Tarefa já em PUBLICAÇÃO → não mover novamente; apenas documentar"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# OUTPUT ARTIFACTS
+# ═══════════════════════════════════════════════════════════════════════════════
+outputs:
+  primary:
+    - "<assets_dir>/final.mp4 — vídeo TikTok final editado"
+  clickup:
+    - "Bloco '## Resultado da Edição' anexado à tarefa"
+    - "Tarefa avançada para status PUBLICAÇÃO"
+  logs:
+    - "JSON de resultado do edit-video.py (stdout)"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# AGENT ASSIGNMENTS BY PHASE
+# ═══════════════════════════════════════════════════════════════════════════════
+agents_by_phase:
+  PHASE-0:
+    primary:
+      - "marketing-agent (qualquer clone ativo)"
+    secondary: []
+  PHASE-1:
+    primary:
+      - "marketing-agent (qualquer clone ativo)"
+    secondary:
+      - "edit-video.py (worker Python autônomo)"
+  PHASE-2:
+    primary:
+      - "marketing-agent (qualquer clone ativo)"
+    secondary: []
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# QUALITY CHECKLIST
+# ═══════════════════════════════════════════════════════════════════════════════
+quality_checklist:
+  Fetch ClickUp EDIÇÃO Task:
+    - "[ ] Script get-last-edicao-task.js executado com sucesso"
+    - "[ ] task_id retornado e não-vazio"
+    - "[ ] Tarefa confirmada em status 'edição'"
+
+  Video Editing:
+    - "[ ] edit-video.py executado sem erros"
+    - "[ ] final.mp4 criado no output_path"
+    - "[ ] Duração do vídeo >= 15 segundos"
+    - "[ ] Partes em no_subtitle sem legenda (inspecionar visualmente)"
+    - "[ ] Partes fora de no_subtitle com legenda visível"
+    - "[ ] Trilha sonora audível no vídeo final (volume reduzido)"
+
+  Document & Advance:
+    - "[ ] Bloco '## Resultado da Edição' presente na descrição da tarefa ClickUp"
+    - "[ ] output_path documentado na tarefa"
+    - "[ ] Tarefa movida para grupo PUBLICAÇÃO"
+    - "[ ] Tarefa não está mais em EDIÇÃO"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GOVERNANCE GATE
+# ═══════════════════════════════════════════════════════════════════════════════
+governance_gate:
+  protocol: "squads/squad-creator/protocols/ai-first-governance.md"
+  required_checks:
+    - "Existing -> Gap -> Decision mapped"
+    - "Canonical sources validated"
+    - "Contradictions documented"
+    - "Unresolved items explicit"
+
+  ci_policy:
+    blocking_deterministic_only: true
+    deterministic_checks:
+      - "syntax/schema"
+      - "broken references (scripts existem nos paths declarados)"
+      - "required files presence (edit-video.py, get-last-edicao-task.js)"
+      - "env vars (CLICKUP_API_KEY presente no .env)"
+    semantic_checks_enforced_in_workflow: true
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# DEPENDENCIES
+# ═══════════════════════════════════════════════════════════════════════════════
+dependencies:
+  scripts:
+    - integrations/clickup/get-last-edicao-task.js
+    - integrations/clickup/append-description.js
+    - integrations/clickup/move-next-stage.js
+    - integrations/video-editor/edit-video.py
+  tasks:
+    - squads/marketing-clones/tasks/execute-video-editing.md
+    - squads/marketing-clones/tasks/video-editor-tools.md
+  system:
+    - "ffmpeg — must be on PATH (https://ffmpeg.org/download.html)"
+  env:
+    - CLICKUP_API_KEY
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# METADATA
+# ═══════════════════════════════════════════════════════════════════════════════
+metadata:
+  version: "1.0.0"
+  framework: "AIOX Marketing Clones Squad"
+  created: "2026-03-23"
+  story_id: "N/A — workflow criado diretamente (não via story formal)"
+  primary_use_case: "Edição automatizada de vídeos TikTok: EDIÇÃO → PUBLICAÇÃO"
+  key_difference: |
+    Este workflow opera sobre assets JÁ PRODUZIDOS (MP4 + MP3).
+    Não gera roteiro, conceito ou descrição — isso é responsabilidade do wf-tiktok-planner.
+    É o segundo estágio do pipeline de produção: roteiro → assets → edição (aqui) → publicação.

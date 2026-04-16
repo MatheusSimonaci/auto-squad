@@ -1,46 +1,39 @@
-import { useState } from 'react';
-import { WORKFLOWS, MENTOR_CARDS, MARKETING_CARDS } from '../../data/workflows';
+import { useState, useEffect } from 'react';
 import WorkflowTile from './WorkflowTile';
 import type { Card } from '../../types';
 
-type CategoryFilter = 'aiox' | 'advisors' | 'marketing';
-
 export default function WorkflowCommander() {
-  const [category, setCategory] = useState<CategoryFilter>('aiox');
+  const [workflows, setWorkflows] = useState<Card[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const cardsByCategory: Record<CategoryFilter, Card[]> = {
-    aiox: WORKFLOWS,
-    advisors: MENTOR_CARDS,
-    marketing: MARKETING_CARDS,
-  };
-
-  const cards = cardsByCategory[category];
+  useEffect(() => {
+    fetch('http://localhost:7433/api/workflows')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.workflows?.length) setWorkflows(data.workflows);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Category Tabs */}
-      <div className="flex gap-3 border-b border-hud-border/30">
-        {(['aiox', 'advisors', 'marketing'] as const).map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setCategory(cat)}
-            className={`px-4 py-2 border-b-2 transition-colors text-sm font-semibold ${
-              category === cat
-                ? 'border-hud-cyan text-hud-cyan'
-                : 'border-transparent text-hud-text-muted hover:text-hud-text'
-            }`}
-          >
-            {cat === 'aiox' ? 'Workflows' : cat === 'advisors' ? 'Advisors' : 'Marketing'}
-          </button>
-        ))}
+    <div className="p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-hud-cyan">Squad Workflows</h2>
+        <span className="text-xs text-hud-text-muted font-mono">{workflows.length} workflows</span>
       </div>
 
-      {/* Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {cards.map((card) => (
-          <WorkflowTile key={card.id} card={card} />
-        ))}
-      </div>
+      {loading ? (
+        <p className="text-hud-text-dim text-sm">Loading workflows...</p>
+      ) : workflows.length === 0 ? (
+        <p className="text-hud-text-dim text-sm">No squad workflows found.</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {workflows.map((card) => (
+            <WorkflowTile key={card.id} card={card} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

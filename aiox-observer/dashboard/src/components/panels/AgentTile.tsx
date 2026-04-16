@@ -61,10 +61,12 @@ export default function AgentTile({ agent, onClick }: AgentTileProps) {
       <p className="text-xs text-hud-text-muted text-center truncate">{agent.persona}</p>
 
       {/* Current Task */}
-      {agent.currentTask && (
-        <p className="text-xs text-hud-text-dim mt-2 text-center truncate line-clamp-1">
-          {agent.currentTask}
+      {agent.currentTask ? (
+        <p className={`text-xs mt-2 text-center truncate line-clamp-2 ${agent.status === 'active' ? 'text-hud-cyan' : 'text-hud-text-dim'}`}>
+          {agent.status === 'active' && <span className="mr-1">▶</span>}{agent.currentTask}
         </p>
+      ) : (
+        <p className="text-xs mt-2 text-center text-hud-text-dim opacity-40">—</p>
       )}
 
       {/* Status Badge */}

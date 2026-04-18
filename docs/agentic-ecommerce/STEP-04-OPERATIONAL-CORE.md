@@ -1,5 +1,5 @@
-# STEP 04 — Núcleo Operacional
-## Plataforma de E-commerce, Processos Internos & Workers Júniores
+# STEP 04 — Núcleo Operacional (v2 — Marketplace Focus)
+## Gestão de Conta, Listing Optimization & Operação Diária no Marketplace
 
 > "If you do not end up adding back at least 10% of the deleted parts, then you didn't delete enough."
 > — Elon Musk
@@ -8,16 +8,20 @@
 
 ## 1. Princípio Fundamental
 
-A maioria dos e-commerces começa construindo a plataforma antes de validar o produto. Isso é otimizar na ordem errada — é o equivalente de automatizar um processo que não deveria existir.
+Não há plataforma para construir. Não há Shopify, não há domínio, não há servidor. O marketplace já é a plataforma. Isso elimina uma classe inteira de problemas — e cria uma diferente.
 
-**The Algorithm aplicado:**
-1. QUESTIONAR: Qual plataforma é necessária para validar o produto com o menor custo?
-2. DELETAR: Tudo que não é necessário para os primeiros 100 pedidos
-3. SIMPLIFICAR: Um canal de venda, uma forma de pagamento, um método de envio
-4. ACELERAR: Só depois de validação do produto
-5. AUTOMATIZAR: Apenas processos comprovadamente recorrentes e estáveis
+A física do marketplace é:
+```
+Visibilidade = f(Relevância do Listing × Reputação da Conta × Velocidade de Vendas)
 
-**Regra inviolável:** Nunca construir infraestrutura para escala que ainda não existe.
+Sem visibilidade → sem vendas
+Sem vendas → sem reputação
+Sem reputação → menos visibilidade
+
+Este ciclo opera em ambas as direções: virtuoso ou vicioso.
+```
+
+O Operations Agent não gerencia uma loja — ele **gerencia um ativo de ranking** dentro do algoritmo do marketplace. Cada ação que ele toma deve ser avaliada pela pergunta: "Isso melhora ou piora nosso posicionamento no algoritmo?"
 
 ---
 
@@ -25,86 +29,150 @@ A maioria dos e-commerces começa construindo a plataforma antes de validar o pr
 
 ```yaml
 agent_spec:
-  id: "operations-agent-v1"
-  nome: "Operations Agent — Plataforma, Pedidos & Atendimento"
+  id: "operations-agent-v2"
+  nome: "Operations Agent — Gestão de Conta e Listings no Marketplace"
   tipo: "operational"
   autoridade:
     pode_fazer:
-      - Gerenciar listagens de produto na plataforma
-      - Processar e monitorar pedidos
-      - Acionar workers para tarefas operacionais específicas
-      - Escalar problemas de pedido ao CEO
-      - Gerenciar atendimento ao cliente via protocolo definido
+      - Criar e otimizar listings de produto
+      - Monitorar saúde da conta no marketplace (métricas de reputação)
+      - Responder perguntas e mensagens de clientes dentro do marketplace
+      - Monitorar pedidos e acionar Supply Chain Agent para reposição
+      - Contratar workers júniores operacionais
+      - Ajustar preço dentro de range aprovado pelo CEO
+      - Criar e gerenciar campanhas de anúncio pago dentro do marketplace
     nao_pode_fazer:
-      - Alterar preço do produto sem aprovação do CEO
-      - Emitir reembolso acima de R$[threshold] sem aprovação
-      - Contratar fornecedores (Supply Chain Agent)
-      - Mudar plataforma de venda sem decisão do CEO
+      - Alterar preço fora do range aprovado sem consultar CEO
+      - Aprovar reembolso acima do threshold sem aprovação
+      - Alterar produto ou categoria sem aprovação do CEO
+      - Comprometer orçamento de anúncios acima do limite mensal definido
   inputs_aceitos:
     - Produto aprovado com especificações completas
+    - Foto do produto (fornecidas ou solicitadas ao Listing Worker)
     - Fornecedor e modelo logístico aprovados (STEP 03)
     - Políticas de atendimento definidas pelo CEO
+    - Budget de anúncio pago definido pelo CEO
   outputs_produzidos:
-    - Dashboard operacional diário (pedidos, status, anomalias)
-    - Relatório semanal de performance (conversão, retorno, NPS)
-    - Alertas de anomalia em tempo real
+    - Dashboard operacional diário (vendas, métricas de conta, anomalias)
+    - Relatório semanal de performance de listing (conversão, CTR, ranking)
+    - Alertas de risco para saúde da conta
   metricas_de_sucesso:
-    - Taxa de pedidos entregues no prazo: ≥ 95%
-    - Taxa de reclamação no marketplace: < 1%
-    - Tempo de resposta ao cliente: < 2h
-    - Taxa de reembolso: < 3%
+    - Reputação no ML: ≥ Prata (em direção ao Ouro)
+    - Tempo de resposta a perguntas: < 1h (ML penaliza acima de 24h)
+    - Taxa de cancelamento: < 3%
+    - Taxa de reclamações: < 2% das vendas
+    - Taxa de pedidos com problema: < 2%
+    - CTR do listing: monitorar e melhorar continuamente
+  condicao_de_demissao:
+    - Conta com status de risco no marketplace por > 7 dias sem resolução
+    - Reputação cai para Vermelho e permanece por > 15 dias
   reporta_para: "ceo-agent"
 ```
 
 ---
 
-## 3. Seleção de Plataforma — Critério de First Principles
+## 3. Entendendo o Algoritmo do Mercado Livre
 
-**Pergunta fundamental:** Qual plataforma reduz o tempo entre "produto aprovado" e "primeiro pedido pago" ao mínimo?
+O Operations Agent precisa entender a física do algoritmo antes de qualquer ação.
 
-### Matriz de Decisão por Fase:
+### Fatores de Ranking no ML (em ordem de impacto):
 
-| Fase | Volume | Plataforma Recomendada | Motivo |
-|------|--------|----------------------|--------|
-| Validação | 0-100 pedidos/mês | Mercado Livre + Shopee | Tráfego orgânico existente, zero custo de aquisição de tráfego |
-| Crescimento | 100-1000 pedidos/mês | Shopify + ML + Shopee | Canal próprio + marketplaces para diversificação |
-| Escala | > 1000 pedidos/mês | Shopify + todos os canais relevantes | Omnichannel com hub central |
-
-### Regra de Build vs. Buy:
 ```
-NUNCA construa o que pode ser comprado em fase de validação.
-SEMPRE compre o que não é vantagem competitiva.
-CONSTRUA apenas o que diferencia o negócio (atendimento, curadoria de produto, marca).
+1. REPUTAÇÃO DA CONTA (peso crítico)
+   - Termômetro: Novo → Bronze → Prata → Ouro → Platinum
+   - Calculado com base em: cancelamentos, reclamações, envios no prazo
+   - Conta nova começa sem termômetro — primeiras vendas são críticas
+   - Meta de curto prazo: chegar a Prata. Meta de médio prazo: Ouro.
 
-Plataforma de e-commerce NÃO é vantagem competitiva — é commodity.
-Use Shopify, Nuvemshop, ou marketplace. Nunca construa plataforma própria antes de R$1M/mês.
+2. HISTÓRICO DE VENDAS DO PRODUTO (peso alto)
+   - Volume de vendas recentes do produto específico
+   - Velocidade de vendas (últimos 30 dias pesam mais que histórico longo)
+   - Primeiras vendas são as mais difíceis — algoritmo não confia em produto sem histórico
+
+3. QUALIDADE DO LISTING (peso alto)
+   - Título com palavras-chave relevantes
+   - Fotos de qualidade profissional
+   - Descrição completa com especificações
+   - Ficha técnica preenchida
+
+4. TIPO DE ANÚNCIO (peso médio)
+   - Platinum > Gold > Classic
+   - Full tem vantagem adicional de ranking sobre Envios
+
+5. PREÇO COMPETITIVO (peso médio)
+   - Preço muito acima da média = perda de ranking
+   - Preço competitivo sem destruir margem é o equilíbrio
+
+6. TEMPO DE RESPOSTA (peso médio)
+   - ML monitora tempo médio de resposta a perguntas
+   - < 1h = positivo | > 24h = penalização
+```
+
+### Implicação estratégica para fase inicial:
+```
+Problema de bootstrap: sem vendas = sem ranking. Sem ranking = sem vendas.
+
+Soluções físicas (em ordem de preferência):
+1. Preço ligeiramente abaixo da concorrência nos primeiros 30-60 pedidos
+   (aceitar margem menor para gerar histórico — investimento em ativo de ranking)
+2. Ativar anúncios pagos internos do ML (Product Ads) para visibilidade inicial
+3. Listing de qualidade superior à concorrência (CTR melhor = mais vendas com mesmo tráfego)
+4. Full ativo desde o início (vantagem de ranking do dia 1)
+
+O que NÃO fazer:
+- Manipulação de avaliações (viola termos, pode banir conta permanentemente)
+- Vendas artificiais (mesmo risco)
 ```
 
 ---
 
-## 4. Configuração Mínima Viável de Plataforma
+## 4. Listing Optimization — Padrão de Qualidade
 
-### Para fase de validação (Mercado Livre):
+### Estrutura do Título (ML e Amazon):
 ```
-Checklist obrigatório para publicação:
-□ Título do produto: palavra-chave principal + benefício + especificação
-□ Fotos: 6-8 fotos (fundo branco obrigatório + foto lifestyle)
-□ Descrição: problema que resolve + como usa + especificações técnicas
-□ Preço: calculado com margem mínima de 40% (Filtro 1 do STEP 02)
-□ Estoque inicial: mínimo para 30 dias de venda estimada
-□ Política de devolução: clara, conforme legislação (7 dias CDC)
-□ Pergunta e resposta template: 10 perguntas mais comuns respondidas
+FÓRMULA: [Produto] [Marca/Destaque] [Especificação Principal] [Benefício/Uso] [Diferencial]
+
+Exemplo ruim: "Fone de ouvido bluetooth"
+Exemplo bom: "Fone de Ouvido Bluetooth 5.0 Sem Fio 30h Bateria Cancelamento de Ruído"
+
+Regras:
+- Incluir palavras-chave que os compradores usam para buscar (verificar no autocomplete do ML)
+- Sem caracteres especiais desnecessários: !, *, ♦
+- Sem capitalização gritante
+- Limite de caracteres do ML: respeitar (verificar regra atual)
+- Palavras mais buscadas no início do título (peso maior no algoritmo)
 ```
 
-### Métricas de validação para avançar de fase:
+### Fotos (faz a maior diferença em CTR):
 ```
-Produto validado quando:
-- ≥ 50 pedidos completados com sucesso
-- NPS ≥ 70 (pesquisa simples pós-entrega)
-- Taxa de reembolso < 5%
-- Margem real confere com margem projetada (variação < 15%)
+Foto 1 — Obrigatória: produto no fundo BRANCO, sem texto, produto ocupando 80% do frame
+Foto 2: produto em uso (lifestyle) — pessoa usando ou contexto de uso real
+Foto 3: detalhes técnicos / close de material
+Foto 4: dimensões com medidas visíveis
+Foto 5: embalagem e conteúdo (o que vem na caixa)
+Foto 6-8: outros ângulos, diferencial do produto
 
-Se produto NÃO validar em 90 dias: Intelligence Agent recebe sinal para reavaliação
+Resolução mínima: 1200x1200px
+Formato: JPG ou PNG
+```
+
+### Descrição:
+```
+Estrutura obrigatória:
+1. Problema que o produto resolve (2-3 linhas)
+2. Como o produto resolve (funcionalidades principais)
+3. Especificações técnicas completas (lista)
+4. O que vem na embalagem
+5. Garantia e política de devolução
+
+Evitar: texto em imagem, caps lock excessivo, promessas impossíveis
+```
+
+### Ficha Técnica:
+```
+Preencher TODOS os campos disponíveis. Cada campo vazio é ranking perdido.
+O algoritmo usa a ficha técnica para exibir o produto nas buscas filtradas.
+Produto com ficha técnica incompleta não aparece quando usuário filtra por especificação.
 ```
 
 ---
@@ -114,148 +182,191 @@ Se produto NÃO validar em 90 dias: Intelligence Agent recebe sinal para reavali
 ### Worker: Listing Creator
 ```yaml
 worker_spec:
-  id: "worker-listing-creator"
-  task: "Criar listagem de produto em [plataforma] seguindo template padrão"
+  id: "worker-listing-creator-v2"
+  task: "Criar listing de produto em [marketplace] seguindo template de qualidade"
   input:
-    - Nome do produto
-    - Especificações técnicas
-    - Fotos fornecidas
+    - Especificações completas do produto
+    - Fotos aprovadas (mínimo 5, máximo 8)
     - Preço definido pelo CEO
-    - Benefícios principais (máx 5)
-  output: "Listagem publicada + URL + print de confirmação"
-  tempo_execucao: "< 2 horas"
-  condicao_rejeicao: "Listagem sem todas as fotos obrigatórias ou preço incorreto"
+    - Palavras-chave pesquisadas para o produto (fornecidas pelo Intelligence Agent)
+    - Categoria e ficha técnica preenchida pelo Intelligence Agent
+  output:
+    - URL do listing publicado
+    - Print da primeira página de busca mostrando o listing
+    - Relatório: "title_score: XX/10 | fotos: X/8 | ficha_tecnica: XX% preenchida"
+  tempo_execucao: "< 3 horas"
+  condicao_rejeicao: |
+    - Menos de 5 fotos publicadas
+    - Ficha técnica < 80% preenchida
+    - Título sem as 3 principais palavras-chave definidas
+    - Preço incorreto
 ```
 
-### Worker: Order Processor
+### Worker: Account Health Monitor
 ```yaml
 worker_spec:
-  id: "worker-order-processor"
-  task: "Processar pedidos recebidos e acionar fulfillment"
-  input: "Lista de pedidos novos com dados completos"
-  output: "Confirmação de processamento + tracking codes atualizados"
-  frequencia: "A cada 2 horas em horário comercial"
-  escalar_se: "Pedido com endereço inválido, pagamento não confirmado, ou produto sem estoque"
+  id: "worker-account-monitor"
+  task: "Monitorar métricas de saúde da conta no marketplace e reportar anomalias"
+  input: "Acesso ao painel do vendedor"
+  output: |
+    JSON diário:
+    reputacao_nivel | cancelamentos_pct | reclamacoes_pct |
+    envios_no_prazo_pct | perguntas_sem_resposta | 
+    status_conta | alertas[]
+  frequencia: "Diário (manhã)"
+  alerta_imediato: |
+    Escalar ao Operations Agent se:
+    - Qualquer métrica cruzar o threshold de risco do marketplace
+    - Conta receber aviso ou advertência
+    - Reputação cair de nível
 ```
 
 ### Worker: Customer Response
 ```yaml
 worker_spec:
-  id: "worker-customer-response"
-  task: "Responder mensagens de clientes seguindo playbook de atendimento"
-  input: "Mensagem do cliente + histórico do pedido"
-  output: "Resposta enviada + categorização da mensagem (dúvida/reclamação/elogio)"
-  tempo_maximo_resposta: "2 horas"
+  id: "worker-customer-response-v2"
+  task: "Responder perguntas e mensagens de clientes no marketplace"
+  input: "Mensagem do cliente + título e descrição do produto + histórico do pedido (se existir)"
+  output: "Resposta enviada + categorização (pergunta_pre_venda / status_pedido / reclamacao / elogio)"
+  tempo_maximo_resposta: "1 hora (crítico para reputação no ML)"
   limite_de_autoridade:
-    - Pode: responder dúvidas, informar status, instruir sobre devolução
-    - Não pode: oferecer desconto, aprovar reembolso acima de R$50, prometer prazo não confirmado
-  escalar_se: "Cliente solicita reembolso, caso jurídico, ou reclamação pública"
+    pode:
+      - Responder dúvidas sobre produto com informações do listing
+      - Informar status de pedido com tracking
+      - Orientar sobre processo de devolução conforme política padrão
+    nao_pode:
+      - Prometer prazo não confirmado pelo sistema
+      - Oferecer desconto ou compensação extra
+      - Aprovar reembolso
+  escalar_ao_operations_agent_se:
+    - Cliente menciona reclamação formal (Procon, Reclame Aqui)
+    - Pedido não entregue com mais de 7 dias de atraso
+    - Cliente solicita cancelamento após envio
+    - Mensagem com ameaça legal
 ```
 
-### Worker: Inventory Monitor
+### Worker: Ad Campaign Manager
 ```yaml
 worker_spec:
-  id: "worker-inventory-monitor"
-  task: "Monitorar nível de estoque e gerar alertas de reposição"
-  input: "Nível de estoque atual + velocity de venda dos últimos 7 dias"
-  output: "Relatório de estoque + alertas de reposição necessária"
-  frequencia: "Diário"
-  alerta_critico: "Escalar ao Supply Chain Agent quando estoque < 14 dias de venda"
+  id: "worker-ad-manager"
+  task: "Gerenciar campanhas de Product Ads no marketplace dentro do budget aprovado"
+  input:
+    - Budget mensal aprovado pelo CEO
+    - Lista de produtos ativos com seus listings
+    - Meta de ACOS (Advertising Cost of Sale) definida pelo CEO
+  output: |
+    Relatório semanal:
+    budget_gasto | budget_restante | impressoes | cliques | 
+    vendas_atribuidas | ACOS_real | recomendacao_ajuste
+  limite_de_autoridade:
+    - Pode ajustar lances dentro de range ±20% do definido
+    - Não pode ultrapassar budget mensal aprovado
+    - Não pode criar nova campanha sem aprovação
+  escalar_se: "ACOS real > 2x a meta por 3 dias consecutivos"
 ```
 
 ---
 
-## 6. Playbook de Atendimento ao Cliente
+## 6. Playbook de Atendimento ao Cliente (Marketplace)
 
-O Worker de Customer Response opera exclusivamente dentro deste playbook:
-
-### Categoria 1 — Dúvidas Pré-Compra:
+### Categoria 1 — Pergunta Pré-Venda:
 ```
-Template: "Olá! [Responde a dúvida específica com informação verificável]. 
-Qualquer outra dúvida, estou aqui!"
+Responder em até 30 minutos (impacta conversão diretamente).
+Template: "[Resposta específica à pergunta com dado verificável do produto].
+Estou à disposição para outras dúvidas!"
+
+NUNCA responder vagamente. Pergunta vaga = cliente vai para o concorrente.
 ```
 
 ### Categoria 2 — Status de Pedido:
 ```
-Template: "Olá! Seu pedido [número] está [status]. Previsão de entrega: [data].
-Você pode acompanhar em tempo real pelo código [tracking]."
+Template: "Seu pedido está [status no sistema] com previsão de entrega para [data].
+Acompanhe pelo código de rastreio: [código]."
 ```
 
-### Categoria 3 — Produto com Defeito:
+### Categoria 3 — Produto com Defeito ou Diferente:
 ```
-Template: "Lamentamos muito pelo ocorrido. Vamos resolver isso imediatamente.
-[Se dentro de 7 dias]: Seu direito de devolução está garantido pelo CDC.
-Siga este passo a passo: [link do protocolo de devolução]."
+Template: "Lamentamos pelo ocorrido. Seu direito de devolução está garantido.
+Para agilizar: [instrução do processo de devolução do marketplace — seguir fluxo padrão do ML/Amazon].
+Resolveremos isso com a maior rapidez possível."
+
+NUNCA discutir culpa ou pedir prova antes de abrir o processo.
 ```
 
-### Categoria 4 — ESCALAÇÃO OBRIGATÓRIA (passa para Operations Agent):
+### Categoria 4 — Escalação Imediata ao Operations Agent:
 ```
-- Reclamação no Reclame Aqui
-- Ameaça de processo judicial
-- Pedido de reembolso por produto não recebido há > 20 dias
-- Reclamação com > 1000 visualizações em qualquer rede social
+- Reclamação aberta no marketplace (ML: reclamação formal)
+- Avaliação negativa com menção de problema grave
+- Cliente ameaça Procon, IDEC, ou processo judicial
+- Pedido de reembolso por não recebimento com > 10 dias de atraso
 ```
 
 ---
 
-## 7. Dashboard Operacional — Formato Padrão
+## 7. Métricas de Performance de Listing
 
-O Operations Agent entrega ao CEO diariamente:
+O Operations Agent monitora e atua sobre:
+
+| Métrica | O que mede | Threshold | Ação se abaixo |
+|--------|-----------|-----------|----------------|
+| CTR (Click-Through Rate) | % que clica ao ver o anúncio | Referência do setor | Melhorar foto 1 (maior impacto) |
+| Taxa de Conversão | % que compra ao entrar no listing | Referência do setor | Melhorar descrição + ficha técnica |
+| Posição média de ranking | Posição no resultado de busca | Top 20 para palavra-chave principal | Otimizar título + aumentar velocidade de vendas |
+| Avaliação média | Nota dos compradores | ≥ 4.5 estrelas | Investigar causa de notas baixas |
+| % Perguntas respondidas em < 1h | Tempo de resposta | ≥ 95% | Revisar processo de resposta |
+
+---
+
+## 8. Dashboard Operacional — Formato Padrão para CEO
 
 ```markdown
 ## Dashboard Operacional — [Data]
 
-### Pedidos:
-- Novos hoje: XX
-- Processados: XX
-- Em trânsito: XX
-- Entregues hoje: XX
-- Atrasados: XX (XX% do total ativo)
+### Vendas:
+- Pedidos hoje: XX | Semana: XX | Mês: XX
+- GMV hoje: R$XX | Semana: R$XX | Mês: R$XX
+- Ticket médio: R$XX
 
-### Atendimento:
-- Mensagens recebidas: XX
-- Respondidas no prazo: XX%
-- Escaladas ao Operations Agent: XX
-- Reembolsos aprovados: XX (R$XX total)
+### Saúde da Conta:
+- Reputação: [Nível] | Tendência: ↑/↓/→
+- Reclamações (30d): XX%  [threshold: < 2%]
+- Cancelamentos (30d): XX%  [threshold: < 3%]
+- Envios no prazo: XX%  [threshold: ≥ 97%]
+- Tempo médio de resposta: XXmin  [threshold: < 60min]
 
-### Estoque:
-- SKUs com estoque crítico (< 14 dias): [lista]
-- Pedido de reposição em andamento: [lista]
+### Estoque no Galpão:
+- [Produto A]: XX unidades (XX dias de cobertura)
+- [Produto B]: XX unidades (XX dias de cobertura)
+- Alertas de reposição: [lista ou "Nenhum"]
 
-### Anomalias do dia:
-[Lista de eventos fora do padrão com ação tomada]
+### Anúncios Pagos:
+- Budget gasto: R$XX / R$XX disponível
+- ACOS real: XX%  [meta: XX%]
+- Vendas atribuídas: R$XX
+
+### Anomalias e Alertas:
+[Lista de eventos fora do padrão com ação tomada ou em andamento]
 
 ### Decisões necessárias do CEO:
-[Lista de itens que precisam de aprovação com deadline]
+[Lista com deadline e contexto mínimo para decidir]
 ```
-
----
-
-## 8. Protocolo de Substituição de Worker
-
-Quando um worker é substituído (demitido):
-1. Documentar motivo específico (formato, prazo, qualidade)
-2. Atualizar spec do worker com critério de rejeição adicional
-3. Novo worker recebe spec atualizado + histórico de falhas do anterior
-4. Período de validação de 7 dias para o novo worker
-5. Aprovação formal do Operations Agent após validação
-
-**Regra:** A substituição de um worker não pode interromper a operação por mais de 4 horas.
 
 ---
 
 ## Output deste Step
 
 Ao final do Step 04, você deve ter:
-- [ ] Operations Agent instanciado
-- [ ] Plataforma de venda configurada e produto publicado
-- [ ] Workers Júniores operacionais (Listing, Order, Customer, Inventory)
-- [ ] Playbook de atendimento documentado
-- [ ] Dashboard operacional configurado e entregando ao CEO
-- [ ] Primeiros 10 pedidos processados e métricas coletadas
+- [ ] Operations Agent instanciado com spec v2
+- [ ] Conta de vendedor criada e configurada no marketplace (ML ou Amazon)
+- [ ] Estoque enviado e confirmado no galpão (ML Full ou FBA)
+- [ ] Primeiro listing publicado e otimizado (title + fotos + ficha técnica)
+- [ ] Workers operacionais (Account Monitor + Customer Response + Ad Manager)
+- [ ] Campanha de anúncio pago ativada com budget inicial
+- [ ] Dashboard operacional entregando ao CEO diariamente
+- [ ] Primeiros 10 pedidos processados com avaliações coletadas
 
-**Próximo:** STEP 05 — Protocolo de Escala (Freelancers + Crescimento)
+**Próximo:** STEP 05 — Protocolo de Escala (Freelancers + Expansão de Marketplace)
 
 ---
 
-*— A maniacal sense of urgency is our operating principle. Get to the first order. Everything else is noise.*
+*— The marketplace is not your store. It's a physics system with a ranking algorithm. Learn the physics. Win the algorithm. Everything else follows.*

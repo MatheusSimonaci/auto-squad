@@ -1,5 +1,5 @@
-# STEP 02 — Camada de Inteligência
-## Data Mining, Identificação de Nicho & Descoberta de Produto
+# STEP 02 — Camada de Inteligência (v2 — Marketplace Focus)
+## Data Mining, Identificação de Nicho & Descoberta de Produto para Marketplaces
 
 > "The measure of success in my life is: how many useful things can I get done?"
 > — Elon Musk
@@ -8,12 +8,21 @@
 
 ## 1. Princípio Fundamental
 
-A maioria dos e-commerces falha porque escolhe nicho por intuição ou copia o que está funcionando para outros. Isso é **suposição de mercado, não lei física.**
+Operar em marketplace muda a física do negócio de forma crítica. Você não controla o tráfego — o algoritmo do marketplace controla. Você não controla a vitrine — o ranking controla. Isso significa que a seleção de produto tem que considerar não apenas margem e tendência, mas também a **física do algoritmo**: como o ML ou Amazon decidem quem aparece primeiro.
 
-A lei física aqui é: **margem bruta > custo de aquisição de cliente > velocidade de giro.**
-Qualquer nicho que não respeita essa equação, independente de quão "quente" pareça, é fisicamente inviável no longo prazo.
+A lei física aqui é:
+```
+Margem Real = Preço de Venda
+            - Custo do Produto
+            - Custo de Envio ao Marketplace
+            - Comissão do Marketplace
+            - Taxa Fixa por Venda (se aplicável)
+            - Custo de Anúncio Pago (se necessário para tração inicial)
 
-O Intelligence Agent não escolhe nicho — ele **elimina** todos os nichos que violam a física do negócio até sobrar o que a física permite.
+Se Margem Real < 30%: produto inviável no modelo marketplace.
+```
+
+O Intelligence Agent não escolhe nicho por intuição — ele **elimina** todos os nichos que violam a física do marketplace até sobrar o que a física permite.
 
 ---
 
@@ -21,151 +30,212 @@ O Intelligence Agent não escolhe nicho — ele **elimina** todos os nichos que 
 
 ```yaml
 agent_spec:
-  id: "intelligence-agent-v1"
-  nome: "Intelligence Agent — Data Mining & Market Discovery"
+  id: "intelligence-agent-v2"
+  nome: "Intelligence Agent — Data Mining & Market Discovery (Marketplace)"
   tipo: "strategic"
   autoridade:
     pode_fazer:
-      - Executar queries em fontes de dados externas
-      - Contratar e demitir Data Workers (júniores)
+      - Executar queries em fontes de dados de marketplace e externas
+      - Contratar e demitir Data Workers júniores
       - Produzir Relatórios de Oportunidade para o CEO
-      - Rejeitar nichos que não passam nos filtros físicos
+      - Rejeitar nichos que não passam nos filtros físicos do marketplace
+      - Monitorar performance de produtos ativos no marketplace
     nao_pode_fazer:
       - Tomar decisão final de nicho (isso é CEO)
       - Contatar fornecedores (isso é Supply Chain Agent)
-      - Aprovar gastos acima de $X (threshold definido pelo CEO)
+      - Alterar listings ou preços (isso é Operations Agent)
   inputs_aceitos:
-    - Briefing inicial do CEO (categoria ampla de interesse)
+    - Briefing inicial do CEO (categoria ou direção ampla)
     - Feedback de relatórios anteriores
-    - Sinais de mercado de fontes primárias
+    - Dados de performance de produtos ativos
   outputs_produzidos:
     - Relatório de Oportunidade de Nicho (formato padronizado)
     - Lista de produtos candidatos com score
-    - Sinais de tendência com fonte e timestamp
+    - Alertas de oportunidade e ameaça no marketplace
   metricas_de_sucesso:
-    - Acurácia de previsão de nicho (medida retrospectivamente)
-    - Tempo de produção do relatório < 4h
-    - Taxa de nichos aprovados pelo CEO > 30%
+    - Taxa de produtos recomendados que atingem milestone M1: ≥ 40%
+    - Tempo de produção do relatório: < 4h
+    - Acurácia de estimativa de margem real vs. margem verificada: variação < 10%
   condicao_de_demissao:
     - Produz relatórios sem fonte verificável por 2 ciclos
-    - CEO rejeita > 90% dos relatórios por 3 ciclos consecutivos
+    - Margem estimada diverge da real em > 25% por 3 relatórios consecutivos
   reporta_para: "ceo-agent"
 ```
 
 ---
 
-## 3. Fontes de Dados Primárias
+## 3. Fontes de Dados Primárias — Marketplace First
 
-O Intelligence Agent deve minerar dados das seguintes fontes (em ordem de confiabilidade):
+Prioridade invertida em relação ao modelo de loja própria: dados nativos do marketplace têm peso maior.
 
-### Tier 1 — Dados de Demanda Real:
+### Tier 1 — Dados Nativos do Marketplace (maior confiabilidade):
 | Fonte | O que extrai | Frequência |
 |-------|-------------|-----------|
-| Google Trends | Tendência de busca por categoria | Diário |
-| Amazon Best Sellers | Volume e ranking por categoria | Diário |
-| Mercado Livre Tendências | Demanda no mercado brasileiro | Diário |
-| Shopee Trending | Produtos em alta na plataforma | Diário |
-| TikTok Shop (quando disponível) | Produtos viralizando | Tempo real |
+| ML Tendências (mercadolivre.com.br/tendencias) | Produtos em alta na plataforma, categorias em crescimento | Diário |
+| ML Best Sellers por categoria | Volume de vendas, preços praticados, sellers dominantes | Diário |
+| Amazon BR Best Sellers | Ranking e estimativa de volume por categoria | Diário |
+| ML Análise de Concorrência | Quantidade de sellers, faixa de preço, avaliações | Semanal |
+| Shopee Trending BR | Comparativo de demanda entre plataformas | Semanal |
 
-### Tier 2 — Dados de Competição e Margem:
+### Tier 2 — Dados de Custo e Origem:
 | Fonte | O que extrai | Frequência |
 |-------|-------------|-----------|
-| AliExpress / Alibaba | Custo de produto na origem | Semanal |
-| Jungle Scout / Helium 10 | Estimativa de volume e receita Amazon | Semanal |
-| SEMrush / Ahrefs | Custo de aquisição via ads por categoria | Semanal |
-| SimilarWeb | Tráfego de concorrentes diretos | Mensal |
+| Alibaba / AliExpress | Custo de produto na origem, MOQ, lead time | Semanal |
+| Google Trends BR | Tendência de busca orgânica para validar demanda | Semanal |
+| Calculadora de Taxas do ML | Comissão real por categoria + taxa fixa | A cada análise |
+| Amazon Fee Calculator | Referral fee + FBA fee estimado | A cada análise |
 
 ### Tier 3 — Sinais de Tendência Emergente:
 | Fonte | O que extrai | Frequência |
 |-------|-------------|-----------|
-| Reddit (r/entrepreneur, r/dropshipping) | Discussões sobre produtos emergentes | Semanal |
-| Pinterest Trends | Tendências de consumo visual | Mensal |
-| Instagram Hashtags | Produtos viralizando organicamente | Semanal |
-| Patentes recentes (USPTO/INPI) | Categorias de produto emergentes | Mensal |
+| TikTok BR (busca manual) | Produtos viralizando que ainda não saturaram o ML | Semanal |
+| Pinterest Trends | Tendências de consumo visual pré-mainstream | Mensal |
+| Google Shopping BR | Anunciantes pagando por categoria = demanda validada | Semanal |
 
 ---
 
-## 4. Filtros Físicos de Nicho (Sequência Inviolável)
+## 4. Filtros Físicos de Nicho para Marketplace (Sequência Inviolável)
 
-Todo nicho passa pelos filtros nesta ordem. Reprovação em qualquer filtro = eliminação imediata.
+### Filtro 1 — Margem Real no Marketplace (crítico — diferente do modelo loja própria)
 
-### Filtro 1 — Margem Bruta Mínima
 ```
-Margem Bruta = (Preço de Venda - Custo do Produto - Custo de Frete) / Preço de Venda
+MERCADO LIVRE — Simulação de Margem:
 
-Threshold: Margem Bruta ≥ 40%
+Preço de Venda Alvo:         R$ XX,00
+(-) Custo do Produto:       (R$ XX,00)
+(-) Frete para ML Full*:    (R$ XX,00)   ← custo de enviar para o galpão do ML
+(-) Comissão ML por venda:  (R$ XX,00)   ← verificar tabela atual por categoria
+(-) Taxa fixa por venda:    (R$ XX,00)   ← verificar regra atual do ML
+(-) Custo de anúncio pago:  (R$ XX,00)   ← estimar 5-10% do preço para fase inicial
+= MARGEM REAL:               R$ XX,00
 
-Se margem < 40%: DELETAR — não há espaço físico para CAC + marketing + operação
-```
+Threshold: Margem Real ≥ 30% do Preço de Venda
 
-### Filtro 2 — Idiot Index do Produto
-```
-Idiot Index = Preço de Venda / Custo de Matéria-Prima no Atacado
-
-Se Idiot Index > 15x: INVESTIGAR — pode haver oportunidade de manufatura própria
-Se Idiot Index < 2x: DELETAR — commodity sem diferenciação possível
-Range ideal: 3x a 10x
-```
-
-### Filtro 3 — Intensidade Competitiva
-```
-Score de Competição:
-- Número de sellers com > 1000 avaliações na categoria: [0-5 = baixo, 5-20 = médio, 20+ = alto]
-- Custo médio de CPC no Google Ads para keywords principais
-- Presença de marcas com > $10M em receita estimada
-
-Threshold: Score de Competição ≤ MÉDIO para nicho de entrada
+IMPORTANTE: Comissões do ML variam por categoria (aproximadamente 11% a 16%).
+Sempre verificar a tabela atual em: vendedores.mercadolivre.com.br/tarifas
 ```
 
-### Filtro 4 — Logística Física
 ```
-Produto passa se:
-- Peso ≤ 2kg (custo de frete controlável)
-- Não é frágil ao ponto de exigir embalagem especial
-- Não tem restrição regulatória (ANVISA, INMETRO)
-- Não é perecível
-- Pode ser armazenado em temperatura ambiente
+AMAZON BR — Simulação de Margem:
+
+Preço de Venda Alvo:         R$ XX,00
+(-) Custo do Produto:       (R$ XX,00)
+(-) Frete para FBA:         (R$ XX,00)   ← custo de enviar para galpão Amazon
+(-) Referral Fee Amazon:    (R$ XX,00)   ← verificar tabela por categoria
+(-) FBA Fee (pick&pack):    (R$ XX,00)   ← baseado em peso/dimensão
+(-) Custo de anúncio pago:  (R$ XX,00)
+= MARGEM REAL:               R$ XX,00
+
+Threshold: Margem Real ≥ 30% do Preço de Venda
+Verificar fees em: sellercentral.amazon.com.br
 ```
 
-### Filtro 5 — Tendência (não moda)
+**Se margem < 30% em qualquer marketplace: DELETAR o produto da lista.**
+
+### Filtro 2 — Elegibilidade para Fulfillment do Marketplace
+
 ```
-Diferença crítica:
-- TENDÊNCIA: crescimento sustentado por 12+ meses com base em necessidade real
-- MODA: pico agudo de 2-6 meses sem fundamento de utilidade
+ML Full — Requisitos físicos do produto (verificar regras atuais):
+□ Peso com embalagem: geralmente ≤ 30kg por unidade
+□ Dimensões: verificar limites atuais do ML Full
+□ Produto sem restrição de categoria (produtos com ANVISA, INMETRO especial = complexidade extra)
+□ Produto não perecível, não frágil a ponto de exigir embalagem especial
+□ Foto de produto no padrão exigido pelo ML
 
-Sinal de tendência: crescimento no Google Trends > 20% YoY por 2 anos consecutivos
-Sinal de moda: pico > 300% em < 3 meses (alto risco de queda simétrica)
+Se produto NÃO é elegível para ML Full:
+→ Avaliar Mercado Envios (você envia, ML fornece etiqueta)
+→ Se também não for viável: eliminar o produto da lista
 
-Threshold: Produto em tendência, não em moda
+Motivo: ML Full ranqueia melhor no algoritmo. Produto não-Full compete com desvantagem estrutural.
+```
+
+### Filtro 3 — Intensidade Competitiva no Marketplace
+
+```
+Análise de sellers na categoria do ML/Amazon:
+
+Score BAIXO (favorável):
+- Menos de 5 sellers com > 500 avaliações na página de busca
+- Seller líder tem abaixo de 5.000 avaliações totais
+- Preço médio dos top sellers com margem que permite competir
+
+Score MÉDIO (aceitável com diferenciação):
+- 5-15 sellers estabelecidos, mas com gaps de qualidade de listing
+- Oportunidade de SEO de listing melhor que os concorrentes
+- Possibilidade de preço competitivo mantendo margem
+
+Score ALTO (evitar no início):
+- > 15 sellers com milhares de avaliações
+- Sellers com reputação Ouro/Platina dominando a primeira página
+- Preço de mercado não permite margem mínima
+
+Threshold para produto novo: Score BAIXO ou MÉDIO com diferenciação identificável
+```
+
+### Filtro 4 — Idiot Index do Produto
+
+```
+Idiot Index = Preço médio no marketplace / Custo de atacado na origem
+
+Range ideal para marketplace: 3x a 8x
+- Abaixo de 2x: commodity — guerra de preço inevitável, margem impossível
+- Acima de 10x: investigar se há oportunidade de entrar no nicho com preço melhor
+- Acima de 15x: produto com muita complexidade de produção ou marca forte — evitar sem análise profunda
+```
+
+### Filtro 5 — Tendência vs. Moda (igual ao modelo anterior, mas com dado marketplace)
+
+```
+Sinal forte de tendência real:
+- Crescimento constante no ML Tendências por 6+ meses
+- Aumento de sellers (mais gente entrando = mercado real)
+- Google Trends BR crescente YoY
+
+Sinal de moda (alto risco):
+- Pico súbito em < 60 dias
+- Associado a viral de rede social sem fundamento de utilidade
+- Já presente em excesso de sellers entrando ao mesmo tempo
+
+Threshold: Tendência confirmada por pelo menos 2 fontes independentes
 ```
 
 ---
 
 ## 5. Data Workers Júniores
 
-O Intelligence Agent contrata workers específicos para tarefas fechadas:
-
-### Worker: Trend Scraper
+### Worker: Marketplace Price Benchmarker
 ```yaml
 worker_spec:
-  id: "worker-trend-scraper"
-  task: "Extrair dados de trending products de [fonte específica]"
-  input: "URL da fonte + categoria alvo + data range"
-  output: "CSV com colunas: produto, volume_busca, variação_30d, variação_90d, fonte, timestamp"
-  tempo_execucao: "< 30 minutos"
-  formato_output: "Estritamente CSV. Sem interpretação. Apenas dados."
-  condicao_rejeicao: "Output fora do formato = task rejeitada, worker substituído"
+  id: "worker-marketplace-benchmarker"
+  task: "Coletar dados de preço, avaliações e sellers para [produto] no [marketplace]"
+  input: "Termo de busca exato + marketplace alvo + número de resultados (padrão: top 20)"
+  output: |
+    CSV com colunas:
+    posicao_ranking | nome_seller | reputacao_seller | preco_venda |
+    qtd_avaliacoes | nota_media | tipo_fulfillment (Full/Envios/Direto) | 
+    frete_cobrado | tempo_entrega_prometido
+  tempo_execucao: "< 45 minutos"
+  formato_output: "Estritamente CSV. Sem interpretação. Apenas dados brutos."
 ```
 
-### Worker: Price Benchmarker
+### Worker: Marketplace Fee Calculator
 ```yaml
 worker_spec:
-  id: "worker-price-benchmarker"
-  task: "Coletar preços de [produto específico] em [plataformas definidas]"
-  input: "Nome do produto + lista de plataformas + número de resultados por plataforma"
-  output: "CSV com colunas: plataforma, vendedor, preço_venda, avaliações, volume_estimado"
-  tempo_execucao: "< 45 minutos"
-  formato_output: "Estritamente CSV. Sem interpretação."
+  id: "worker-fee-calculator"
+  task: "Calcular margem real para [produto] no [marketplace] com [preço de venda]"
+  input: |
+    - Produto (nome e categoria)
+    - Preço de venda pretendido
+    - Custo do produto (fornecedor)
+    - Peso e dimensões da embalagem
+    - Marketplace alvo (ML ou Amazon)
+  output: |
+    JSON com:
+    preco_venda | custo_produto | comissao_marketplace |
+    taxa_fixa | custo_frete_fulfillment | margem_bruta_r$ | margem_bruta_pct |
+    elegivel_full: true/false | fonte_tarifas + data_consulta
+  tempo_execucao: "< 20 minutos"
+  observacao: "Sempre consultar tabela de tarifas atual — taxas mudam. Nunca usar valor memorizado."
 ```
 
 ### Worker: Competition Profiler
@@ -173,23 +243,24 @@ worker_spec:
 worker_spec:
   id: "worker-competition-profiler"
   task: "Mapear top 10 sellers de [categoria] no [marketplace]"
-  input: "Categoria + marketplace + critério de ranking"
-  output: "JSON com: seller_name, receita_estimada, reviews_count, avg_price, top_products[]"
+  input: "Categoria + marketplace + critério de ranking (mais vendidos / mais avaliados)"
+  output: |
+    JSON com por seller:
+    nome | reputacao | total_avaliacoes | avg_price | fulfillment_type |
+    tempo_no_marketplace | top_3_produtos_com_preco[]
   tempo_execucao: "< 60 minutos"
 ```
 
 ---
 
-## 6. Scoring Final de Produto
-
-Após passar por todos os filtros, cada produto candidato recebe um score:
+## 6. Scoring Final de Produto (Ajustado para Marketplace)
 
 ```
 PRODUCT SCORE = (
-  (Margem Bruta × 0.35) +
+  (Margem Real no Marketplace × 0.40) +   ← peso maior: viabilidade financeira real
   (Score de Tendência × 0.25) +
   (Inverso de Competição × 0.20) +
-  (Score Logístico × 0.20)
+  (Elegibilidade Full/FBA × 0.15)          ← novo: impacta ranking diretamente
 ) × 100
 
 Threshold para aprovação: Score ≥ 65
@@ -200,55 +271,42 @@ Top candidates (Score ≥ 80): encaminhar ao CEO para decisão final
 
 ## 7. Relatório de Oportunidade — Formato Padrão
 
-O Intelligence Agent entrega ao CEO apenas este formato:
-
 ```markdown
 ## Relatório de Oportunidade — [Data]
 
 ### Candidatos Aprovados (Score ≥ 65):
 
-| Produto | Score | Margem | Tendência | Competição | Logística |
-|---------|-------|--------|-----------|------------|-----------|
-| [nome]  | XX    | XX%    | ↑XX% YoY  | BAIXA/MÉDIA| APROVADA  |
+| Produto | Score | Margem Real | Tendência | Competição | Full Eligible |
+|---------|-------|-------------|-----------|------------|---------------|
+| [nome]  | XX    | XX%         | ↑XX% 6m   | BAIXA      | SIM/NÃO       |
 
 ### Top Recomendação:
 **Produto:** [nome]
-**Raciocínio:** [3 linhas máximo — baseado em dados, não intuição]
+**Marketplace recomendado:** ML ou Amazon (com justificativa)
+**Raciocínio:** [baseado em dados, máximo 3 linhas]
 **Risco principal:** [1 linha]
-**Próximo passo sugerido:** Encaminhar ao Supply Chain Agent para pesquisa de fornecedor
+**Próximo passo:** Encaminhar ao Supply Chain Agent para sourcing e amostra
 
 ### Produtos Rejeitados:
-[lista com motivo específico do filtro que falhou]
+[produto] — Motivo: [filtro específico que falhou com dado]
 
-### Fontes utilizadas:
-[lista de fontes com timestamp]
+### Tarifas consultadas em:
+[links + data de consulta — tarifas mudam, data importa]
 ```
-
----
-
-## 8. Cadência Operacional
-
-| Ciclo | Frequência | Responsável | Output |
-|-------|------------|-------------|--------|
-| Scan de tendências | Diário | Trend Scraper Workers | Raw data |
-| Análise de filtros | Semanal | Intelligence Agent | Lista filtrada |
-| Relatório para CEO | Quinzenal | Intelligence Agent | Relatório padronizado |
-| Revisão de nicho ativo | Mensal | CEO + Intelligence Agent | Decisão de manter/pivotar |
 
 ---
 
 ## Output deste Step
 
 Ao final do Step 02, você deve ter:
-- [ ] Intelligence Agent instanciado com spec completo
-- [ ] Data Workers criados (Trend Scraper + Price Benchmarker + Competition Profiler)
-- [ ] Fontes de dados configuradas e testadas
-- [ ] Filtros físicos implementados e validados
-- [ ] Primeiro Relatório de Oportunidade entregue ao CEO
-- [ ] Top 3 produtos candidatos identificados
+- [ ] Intelligence Agent instanciado com spec v2
+- [ ] Workers criados (Marketplace Benchmarker + Fee Calculator + Competition Profiler)
+- [ ] Fontes de dados configuradas com foco em marketplace nativo
+- [ ] Margem real calculada incluindo todas as taxas do marketplace
+- [ ] Primeiro Relatório de Oportunidade com top 3 produtos candidatos entregue ao CEO
 
-**Próximo:** STEP 03 — Cadeia de Suprimentos (Fornecedores + Logística)
+**Próximo:** STEP 03 — Cadeia de Suprimentos (Fornecedores + Logística para Marketplace)
 
 ---
 
-*— The question isn't whether this will work. Physics allows it. The question is whether you will execute with the urgency it deserves.*
+*— Physics is law. And in a marketplace, the physics includes the fee table. Calculate the real cost before falling in love with a product.*
